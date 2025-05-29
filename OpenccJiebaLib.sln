@@ -1,0 +1,22 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenccJiebaLib", "OpenccJiebaLib\OpenccJiebaLib.csproj", "{C790291C-E178-45E0-A0DD-FB8BE9F57F68}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenccJiebaLibTests", "OpenccJiebaLibTests\OpenccJiebaLibTests.csproj", "{0B4EC355-9F89-4A63-A1CE-1B8927B1140F}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{C790291C-E178-45E0-A0DD-FB8BE9F57F68}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C790291C-E178-45E0-A0DD-FB8BE9F57F68}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C790291C-E178-45E0-A0DD-FB8BE9F57F68}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C790291C-E178-45E0-A0DD-FB8BE9F57F68}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0B4EC355-9F89-4A63-A1CE-1B8927B1140F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0B4EC355-9F89-4A63-A1CE-1B8927B1140F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0B4EC355-9F89-4A63-A1CE-1B8927B1140F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0B4EC355-9F89-4A63-A1CE-1B8927B1140F}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

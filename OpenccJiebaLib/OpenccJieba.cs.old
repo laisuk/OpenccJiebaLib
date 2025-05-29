@@ -1,0 +1,355 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Runtime.InteropServices;
+using System.Text;
+
+namespace OpenccJiebaLib
+{
+    public sealed class OpenccJieba : IDisposable
+    {
+        private IntPtr _openccInstance; // Made non-readonly to allow setting to Zero after disposal
+        private bool _disposed; // To detect redundant calls
+
+        // Define constants
+        private const string DllPath = "opencc_jieba_capi"; // Change this to the actual path of your DLL
+
+        private static readonly HashSet<string> ConfigList = new HashSet<string>
+        {
+            "s2t", "t2s", "s2tw", "tw2s", "s2twp", "tw2sp", "s2hk", "hk2s", "t2tw", "t2twp", "t2hk", "tw2t", "tw2tp",
+            "hk2t", "t2jp", "jp2t"
+        };
+
+
+        // Define DLL functions using P/Invoke
+        [DllImport(DllPath, CallingConvention = CallingConvention.Cdecl)]
+        private static extern IntPtr opencc_jieba_new();
+
+        [DllImport(DllPath, CallingConvention = CallingConvention.Cdecl)]
+        private static extern void opencc_jieba_free(IntPtr opencc);
+
+        [DllImport(DllPath, CallingConvention = CallingConvention.Cdecl)]
+        private static extern IntPtr opencc_jieba_convert(IntPtr opencc, byte[] input, byte[] config, bool punctuation);
+
+        [DllImport(DllPath, CallingConvention = CallingConvention.Cdecl)]
+        private static extern int opencc_jieba_zho_check(IntPtr opencc, byte[] input);
+
+        [DllImport(DllPath, CallingConvention = CallingConvention.Cdecl)]
+        private static extern void opencc_jieba_free_string(IntPtr str);
+
+        [DllImport(DllPath, CallingConvention = CallingConvention.Cdecl)]
+        private static extern IntPtr opencc_jieba_cut(IntPtr opencc, byte[] input, bool hmm);
+        
+        [DllImport(DllPath, CallingConvention = CallingConvention.Cdecl)]
+        private static extern IntPtr opencc_jieba_cut_and_join(IntPtr opencc, byte[] input, bool hmm, byte[] delimiter);
+
+        [DllImport(DllPath, CallingConvention = CallingConvention.Cdecl)]
+        private static extern void opencc_jieba_free_string_array(IntPtr array);
+
+        [DllImport(DllPath, CallingConvention = CallingConvention.Cdecl)]
+        private static extern IntPtr opencc_jieba_keywords(IntPtr opencc, byte[] input, int topK, byte[] method);
+
+        [DllImport(DllPath, CallingConvention = CallingConvention.Cdecl)]
+        private static extern int opencc_jieba_keywords_and_weights(
+            IntPtr instance,
+            byte[] input,
+            IntPtr topK,
+            byte[] method,
+            out IntPtr outLen,
+            out IntPtr outKeywords,
+            out IntPtr outWeights
+        );
+
+        [DllImport(DllPath, CallingConvention = CallingConvention.Cdecl)]
+        private static extern void opencc_jieba_free_keywords_and_weights(
+            IntPtr keywords,
+            IntPtr weights,
+            IntPtr len
+        );
+
+        // Constructor to initialize the native instance
+        public OpenccJieba()
+        {
+            _openccInstance = opencc_jieba_new();
+            if (_openccInstance == IntPtr.Zero)
+            {
+                // Handle initialization failure, e.g., throw an exception
+                throw new InvalidOperationException("Failed to initialize native OpenCC/Jieba instance.");
+            }
+        }
+
+        // Public Dispose method
+        public void Dispose()
+        {
+            Dispose(true);
+            // Suppress finalization.
+            GC.SuppressFinalize(this);
+        }
+
+        // Protected implementation of Dispose pattern.
+        private void Dispose(bool disposing)
+        {
+            if (_disposed)
+                return;
+
+            if (disposing)
+            {
+                // Free any other managed objects here.
+                // (none in this case, but good practice to have the placeholder)
+            }
+
+            // Free unmanaged resources (unmanaged objects) and override a finalizer below.
+            if (_openccInstance != IntPtr.Zero)
+            {
+                opencc_jieba_free(_openccInstance);
+                _openccInstance = IntPtr.Zero; // Mark as freed
+            }
+
+            _disposed = true;
+        }
+
+        // Finalizer (destructor)
+        ~OpenccJieba()
+        {
+            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
+            Dispose(disposing: false);
+        }
+
+        public string Convert(string input, string config, bool punctuation = false)
+        {
+            if (_disposed) throw new ObjectDisposedException(nameof(OpenccJieba));
+            if (string.IsNullOrEmpty(input)) return string.Empty;
+
+            config = !ConfigList.Contains(config) ? "s2t" : config;
+
+            return ConvertBy(input, config, punctuation);
+        }
+
+        private string ConvertBy(string input, string config, bool punctuation = false)
+        {
+            // No need for _disposed check here as it's private and called by a public method that checks.
+            // However, if it were public or protected, a check would be good.
+            var inputBytes = Encoding.UTF8.GetBytes(input);
+            var configBytes = Encoding.UTF8.GetBytes(config);
+
+            if (_openccInstance == IntPtr.Zero)
+                throw new InvalidOperationException("Native instance is not initialized or has been disposed.");
+
+            var output =
+                opencc_jieba_convert(_openccInstance, inputBytes, configBytes, punctuation);
+            var convertedString = Utf8BytesToString(output);
+
+            // The native string needs to be freed
+            if (output != IntPtr.Zero) opencc_jieba_free_string(output);
+
+            return convertedString;
+        }
+
+        public int ZhoCheck(string input)
+        {
+            if (_disposed) throw new ObjectDisposedException(nameof(OpenccJieba));
+            if (string.IsNullOrEmpty(input)) return 0;
+            var inputBytes = Encoding.UTF8.GetBytes(input);
+
+            if (_openccInstance == IntPtr.Zero)
+                throw new InvalidOperationException("Native instance is not initialized or has been disposed.");
+
+            var code = opencc_jieba_zho_check(_openccInstance, inputBytes);
+
+            return code;
+        }
+
+        // Example method for opencc_jieba_cut usage (UTF-8)
+        public string[] JiebaCut(string input, bool hmm)
+        {
+            if (_disposed) throw new ObjectDisposedException(nameof(OpenccJieba));
+            var inputBytes = StringToUtf8Bytes(input);
+
+            if (_openccInstance == IntPtr.Zero)
+                throw new InvalidOperationException("Native instance is not initialized or has been disposed.");
+
+            var result = opencc_jieba_cut(_openccInstance, inputBytes, hmm);
+
+            if (result == IntPtr.Zero)
+                return Array.Empty<string>();
+
+            var words = MarshalNullTerminatedStringArray(result);
+
+            // Free the string array
+            if (result != IntPtr.Zero) opencc_jieba_free_string_array(result);
+
+            return words;
+        }
+
+        public string JiebaCutAndJoin(string input, bool hmm, string delimiter)
+        {
+            if (_disposed) throw new ObjectDisposedException(nameof(OpenccJieba));
+            if (_openccInstance == IntPtr.Zero)
+                throw new InvalidOperationException("Native instance is not initialized or has been disposed.");
+
+            var inputBytes = StringToUtf8Bytes(input);
+            var delimiterBytes = StringToUtf8Bytes(delimiter);
+
+            IntPtr resultPtr = opencc_jieba_cut_and_join(_openccInstance, inputBytes, hmm, delimiterBytes);
+
+            if (resultPtr == IntPtr.Zero)
+                return string.Empty;
+
+            string result = Utf8BytesToString(resultPtr);
+
+            // Assume the C API allocates memory that must be freed—use free if applicable.
+            // If your C API has a `opencc_jieba_free_string(IntPtr)` or similar, call it here:
+            opencc_jieba_free_string(resultPtr);
+
+            return result;
+        }
+        
+        public string[] JiebaKeywordExtractTextRank(string input, int topK)
+        {
+            if (_disposed) throw new ObjectDisposedException(nameof(OpenccJieba));
+            var inputBytes = StringToUtf8Bytes(input);
+            var methodBytes = StringToUtf8Bytes("textrank");
+
+            if (_openccInstance == IntPtr.Zero)
+                throw new InvalidOperationException("Native instance is not initialized or has been disposed.");
+
+            var result = opencc_jieba_keywords(_openccInstance, inputBytes, topK, methodBytes);
+
+            if (result == IntPtr.Zero)
+                return Array.Empty<string>();
+
+            var keywords = MarshalNullTerminatedStringArray(result);
+
+            if (result != IntPtr.Zero) opencc_jieba_free_string_array(result);
+
+            return keywords;
+        }
+
+        public string[] JiebaKeywordExtractTfidf(string input, int topK)
+        {
+            if (_disposed) throw new ObjectDisposedException(nameof(OpenccJieba));
+            var inputBytes = StringToUtf8Bytes(input);
+            var methodBytes = StringToUtf8Bytes("tfidf");
+
+            if (_openccInstance == IntPtr.Zero)
+                throw new InvalidOperationException("Native instance is not initialized or has been disposed.");
+
+            var result = opencc_jieba_keywords(_openccInstance, inputBytes, topK, methodBytes);
+
+            if (result == IntPtr.Zero)
+                return Array.Empty<string>();
+
+            var keywords = MarshalNullTerminatedStringArray(result);
+
+            if (result != IntPtr.Zero) opencc_jieba_free_string_array(result);
+
+            return keywords;
+        }
+
+        // Method to call the keyword extraction and get results    
+        public (string[] keywords, double[] weights) JiebaExtractKeywords(string input, int topK, string method)
+        {
+            if (_disposed) throw new ObjectDisposedException(nameof(OpenccJieba));
+            // Convert input string to UTF-8 byte array
+            var inputBytes = Encoding.UTF8.GetBytes(input);
+            var methodBytes = Encoding.UTF8.GetBytes(method);
+            IntPtr keywordsPtr = IntPtr.Zero;
+            IntPtr weightsPtr = IntPtr.Zero;
+            IntPtr keywordCountPtr = IntPtr.Zero;
+
+            try
+            {
+                // Use the class instance
+                if (_openccInstance == IntPtr.Zero)
+                    throw new InvalidOperationException("Native instance is not initialized or has been disposed.");
+                // Prepare variables for keyword extraction
+                // Note: The native function signature uses IntPtr for topK, which is unusual for an integer.
+                // Casting int to IntPtr might be problematic on 32-bit vs 64-bit systems if the native side expects a specific size.
+                var result = opencc_jieba_keywords_and_weights(
+                    _openccInstance,
+                    inputBytes,
+                    (IntPtr)topK,
+                    methodBytes,
+                    out keywordCountPtr,
+                    out keywordsPtr,
+                    out weightsPtr
+                );
+
+                if (result != 0)
+                {
+                    throw new Exception("Keyword extraction failed with error code: " + result);
+                }
+
+                var keywordCount = (int)keywordCountPtr;
+                var keywords = new string[keywordCount];
+                var weights = new double[keywordCount];
+
+                // Process and convert the extracted keywords and weights
+                for (var i = 0; i < keywordCount; i++)
+                {
+                    IntPtr keywordPtr = Marshal.ReadIntPtr(keywordsPtr, i * IntPtr.Size);
+                    keywords[i] = Utf8BytesToString(keywordPtr);
+                    weights[i] = Marshal.PtrToStructure<double>(weightsPtr + (i * sizeof(double)));
+                }
+
+                return (keywords, weights);
+            }
+            finally
+            {
+                // Free memory for keywords and weights using the CAPI function
+                if (keywordsPtr != IntPtr.Zero && weightsPtr != IntPtr.Zero)
+                {
+                    opencc_jieba_free_keywords_and_weights(keywordsPtr, weightsPtr, keywordCountPtr);
+                }
+            }
+        }
+
+        // Helper methods to encode/decode between C# string (UTF-16) and UTF-8 byte[]
+        private byte[] StringToUtf8Bytes(string str)
+        {
+            return Encoding.UTF8.GetBytes(str);
+        }
+ 
+        private static unsafe string Utf8BytesToString(IntPtr ptr)
+        {
+            if (ptr == IntPtr.Zero)
+                return null;
+
+            byte* bytePtr = (byte*)ptr;
+            int length = 0;
+
+            // Find null-terminator length
+            for (byte* p = bytePtr; *p != 0; p++)
+            {
+                length++;
+            }
+
+            // Decode directly from the unmanaged memory
+            return Encoding.UTF8.GetString(bytePtr, length);
+        }
+        
+        private static unsafe string[] MarshalNullTerminatedStringArray(IntPtr stringArrayPtr)
+        {
+            if (stringArrayPtr == IntPtr.Zero)
+                return Array.Empty<string>();
+
+            var strings = new List<string>();
+            byte** current = (byte**)stringArrayPtr;
+
+            while (*current != null)
+            {
+                byte* str = *current;
+
+                // Calculate string length (null-terminated)
+                int len = 0;
+                for (byte* p = str; *p != 0; p++)
+                    len++;
+
+                strings.Add(Encoding.UTF8.GetString(str, len));
+                current++;
+            }
+
+            return strings.ToArray();
+        }
+
+    }
+}
