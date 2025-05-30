@@ -54,7 +54,7 @@ var (kw, weights) = openccJieba.JiebaExtractKeywords("这是一个用于关键�
 
 ## License
 
-[MIT](LICENSE)
+[MIT](LICENSE.txt)
 
 ## Acknowledgements
 
