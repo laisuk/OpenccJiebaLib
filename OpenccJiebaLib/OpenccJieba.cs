@@ -21,29 +21,18 @@ namespace OpenccJiebaLib
         private const string DllPath = "opencc_jieba_capi"; // Name of the native DLL
 
         // Pre-encoded config bytes for common configurations
-        private static readonly Dictionary<string, byte[]> PreEncodedConfigs = new Dictionary<string, byte[]>();
+        private static readonly Dictionary<string, byte[]> EncodedConfigCache =
+            new Dictionary<string, byte[]>(StringComparer.Ordinal);
 
         // Supported configuration names for OpenCC conversion
-        private static readonly HashSet<string> ConfigList = new HashSet<string>
-        {
-            "s2t", "t2s", "s2tw", "tw2s", "s2twp", "tw2sp", "s2hk", "hk2s", "t2tw", "t2twp", "t2hk", "tw2t", "tw2tp",
-            "hk2t", "t2jp", "jp2t"
-        };
-
-        // Static constructor to pre-encode common config strings for efficient native interop
-        static OpenccJieba()
-        {
-            foreach (var config in ConfigList)
+        private static readonly HashSet<string> ConfigList = new HashSet<string>(
+            new[]
             {
-                // GetByteCount + 1 for null terminator
-                int byteCount = Encoding.UTF8.GetByteCount(config);
-                byte[] encodedBytes = new byte[byteCount + 1];
-                Encoding.UTF8.GetBytes(config, 0, config.Length, encodedBytes, 0);
-                encodedBytes[byteCount] = 0x00; // Null-terminate
-                PreEncodedConfigs.Add(config, encodedBytes);
-            }
-        }
-
+                "s2t", "t2s", "s2tw", "tw2s", "s2twp", "tw2sp", "s2hk", "hk2s",
+                "t2tw", "t2twp", "t2hk", "tw2t", "tw2tp", "hk2t", "t2jp", "jp2t"
+            },
+            StringComparer.Ordinal);
+        
         #region Native Function Imports
 
         // Native function imports using P/Invoke
@@ -95,6 +84,23 @@ namespace OpenccJiebaLib
 
         #endregion
 
+        // Static constructor to pre-encode common config strings for efficient native interop
+        static OpenccJieba()
+        {
+            foreach (var config in ConfigList)
+            {
+                if (EncodedConfigCache.ContainsKey(config))
+                    continue; // Defensive: avoid ArgumentException if code is refactored later
+
+                var byteCount = Encoding.UTF8.GetByteCount(config);
+                var encodedBytes = new byte[byteCount + 1];
+                Encoding.UTF8.GetBytes(config, 0, config.Length, encodedBytes, 0);
+                encodedBytes[byteCount] = 0x00;
+
+                EncodedConfigCache[config] = encodedBytes;
+            }
+        }
+        
         /// <summary>
         /// Initializes a new instance of the <see cref="OpenccJieba"/> class and allocates the native resources.
         /// </summary>
@@ -177,13 +183,13 @@ namespace OpenccJiebaLib
                 throw new InvalidOperationException("Native instance is not initialized or has been disposed.");
 
             byte[] inputBytes = null;
-            byte[] configBytes = PreEncodedConfigs[config];
-            IntPtr output = IntPtr.Zero;
+            var configBytes = EncodedConfigCache[config];
+            var output = IntPtr.Zero;
             string convertedString;
 
             try
             {
-                int inputByteCount = Encoding.UTF8.GetByteCount(input);
+                var inputByteCount = Encoding.UTF8.GetByteCount(input);
                 inputBytes = ArrayPool<byte>.Shared.Rent(inputByteCount + 1);
                 Encoding.UTF8.GetBytes(input, 0, input.Length, inputBytes, 0);
                 inputBytes[inputByteCount] = 0x00; // Null-terminate
@@ -221,7 +227,7 @@ namespace OpenccJiebaLib
 
             try
             {
-                int inputByteCount = Encoding.UTF8.GetByteCount(input);
+                var inputByteCount = Encoding.UTF8.GetByteCount(input);
                 inputBytes = ArrayPool<byte>.Shared.Rent(inputByteCount + 1);
                 Encoding.UTF8.GetBytes(input, 0, input.Length, inputBytes, 0);
                 inputBytes[inputByteCount] = 0x00; // Null-terminate
@@ -281,12 +287,12 @@ namespace OpenccJiebaLib
             var inputBytes = StringToUtf8Bytes(input);
             var delimiterBytes = StringToUtf8Bytes(delimiter);
 
-            IntPtr resultPtr = opencc_jieba_cut_and_join(_openccInstance, inputBytes, hmm, delimiterBytes);
+            var resultPtr = opencc_jieba_cut_and_join(_openccInstance, inputBytes, hmm, delimiterBytes);
 
             if (resultPtr == IntPtr.Zero)
                 return string.Empty;
 
-            string result = Utf8BytesToString(resultPtr);
+            var result = Utf8BytesToString(resultPtr);
 
             opencc_jieba_free_string(resultPtr);
 
@@ -362,9 +368,9 @@ namespace OpenccJiebaLib
             if (_disposed) throw new ObjectDisposedException(nameof(OpenccJieba));
             var inputBytes = Encoding.UTF8.GetBytes(input);
             var methodBytes = Encoding.UTF8.GetBytes(method);
-            IntPtr keywordsPtr = IntPtr.Zero;
-            IntPtr weightsPtr = IntPtr.Zero;
-            IntPtr keywordCountPtr = IntPtr.Zero;
+            var keywordsPtr = IntPtr.Zero;
+            var weightsPtr = IntPtr.Zero;
+            var keywordCountPtr = IntPtr.Zero;
 
             try
             {
@@ -393,7 +399,7 @@ namespace OpenccJiebaLib
                 // Marshal keywords and weights from native memory
                 for (var i = 0; i < keywordCount; i++)
                 {
-                    IntPtr keywordPtr = Marshal.ReadIntPtr(keywordsPtr, i * IntPtr.Size);
+                    var keywordPtr = Marshal.ReadIntPtr(keywordsPtr, i * IntPtr.Size);
                     keywords[i] = Utf8BytesToString(keywordPtr);
                     weights[i] = Marshal.PtrToStructure<double>(weightsPtr + (i * sizeof(double)));
                 }
@@ -417,7 +423,7 @@ namespace OpenccJiebaLib
         /// </summary>
         /// <param name="str">The input string.</param>
         /// <returns>UTF-8 encoded byte array.</returns>
-        private byte[] StringToUtf8Bytes(string str)
+        private static byte[] StringToUtf8Bytes(string str)
         {
             return Encoding.UTF8.GetBytes(str);
         }
@@ -432,11 +438,11 @@ namespace OpenccJiebaLib
             if (ptr == IntPtr.Zero)
                 return string.Empty;
 
-            byte* bytePtr = (byte*)ptr;
-            int length = 0;
+            var bytePtr = (byte*)ptr;
+            var length = 0;
 
             // Find null-terminator length
-            for (byte* p = bytePtr; *p != 0; p++)
+            for (var p = bytePtr; *p != 0; p++)
             {
                 length++;
             }
@@ -455,15 +461,15 @@ namespace OpenccJiebaLib
                 return Array.Empty<string>();
 
             var strings = new List<string>();
-            byte** current = (byte**)stringArrayPtr;
+            var current = (byte**)stringArrayPtr;
 
             while (*current != null)
             {
-                byte* str = *current;
+                var str = *current;
 
                 // Calculate string length (null-terminated)
-                int len = 0;
-                for (byte* p = str; *p != 0; p++)
+                var len = 0;
+                for (var p = str; *p != 0; p++)
                     len++;
 
                 strings.Add(Encoding.UTF8.GetString(str, len));
