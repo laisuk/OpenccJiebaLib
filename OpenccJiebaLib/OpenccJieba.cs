@@ -32,7 +32,7 @@ namespace OpenccJiebaLib
                 "t2tw", "t2twp", "t2hk", "tw2t", "tw2tp", "hk2t", "t2jp", "jp2t"
             },
             StringComparer.Ordinal);
-        
+
         #region Native Function Imports
 
         // Native function imports using P/Invoke
@@ -100,7 +100,7 @@ namespace OpenccJiebaLib
                 EncodedConfigCache[config] = encodedBytes;
             }
         }
-        
+
         /// <summary>
         /// Initializes a new instance of the <see cref="OpenccJieba"/> class and allocates the native resources.
         /// </summary>
@@ -419,13 +419,20 @@ namespace OpenccJiebaLib
         #region Helper Methods
 
         /// <summary>
-        /// Converts a C# string to a UTF-8 encoded byte array.
+        /// Converts a C# string to a UTF-8 encoded null-terminated byte array.
         /// </summary>
         /// <param name="str">The input string.</param>
-        /// <returns>UTF-8 encoded byte array.</returns>
+        /// <returns>UTF-8 encoded byte array, null-terminated.</returns>
         private static byte[] StringToUtf8Bytes(string str)
         {
-            return Encoding.UTF8.GetBytes(str);
+            if (str == null)
+                return new byte[] { 0 }; // Just a single null if input is null
+
+            var byteCount = Encoding.UTF8.GetByteCount(str);
+            var buffer = new byte[byteCount + 1]; // +1 for null terminator
+            Encoding.UTF8.GetBytes(str, 0, str.Length, buffer, 0);
+            buffer[byteCount] = 0x00; // Explicit null termination
+            return buffer;
         }
 
         /// <summary>
