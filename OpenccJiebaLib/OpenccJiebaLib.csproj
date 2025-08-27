@@ -6,13 +6,18 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <None Update="opencc_jieba_capi.dll">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </None>
+      <PackageReference Include="System.Memory" Version="4.6.3" />
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="System.Memory" Version="4.6.3" />
+      <Folder Include="runtimes\osx-arm64\native\" />
+      <Folder Include="runtimes\win-x86\native\" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Update="runtimes\win-x64\native\opencc_jieba_capi.dll">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
     </ItemGroup>
 
 </Project>
