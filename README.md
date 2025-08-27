@@ -1,6 +1,10 @@
 # OpenccJiebaLib
 
-A .NET Standard 2.0 library providing a managed C# wrapper for the OpenCC and Jieba C API, enabling efficient Chinese text conversion (Simplified/Traditional) and segmentation/keyword extraction in .NET applications.
+[![NuGet](https://img.shields.io/nuget/v/OpenccJiebaLib.svg)](https://www.nuget.org/packages/OpenccNetLib/)
+[![NuGet Downloads](https://img.shields.io/nuget/dt/OpenccJiebaLib.svg?label=downloads&color=blue)](https://www.nuget.org/packages/OpenccJiebaLib/)
+[![License](https://img.shields.io/github/license/laisuk/OpenccJieabLib.svg)](https://github.com/laisuk/OpenccJiebaLib/blob/master/LICENSE)  
+
+A .NET Standard 2.0 library providing a managed C# wrapper for the Rust-based OpenCC and Jieba C API, enabling efficient Chinese text conversion (Simplified/Traditional) and segmentation/keyword extraction in .NET applications.
 
 ## Features
 

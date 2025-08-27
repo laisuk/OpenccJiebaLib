@@ -7,7 +7,7 @@
         <Authors>laisuk</Authors>
         <AssemblyVersion>1.0.0.0</AssemblyVersion>
         <FileVersion>1.0.0.0</FileVersion>
-        <Description>opencc-jieba-rs C API .NET interop library for Chinese text conversion and segmentation between Traditional and Simplified Chinese</Description>
+        <Description>opencc-jieba-rs Rust based C API .NET interop library for Chinese text conversion and segmentation between Traditional and Simplified Chinese</Description>
         <Copyright>laisuk</Copyright>
         <PackageProjectUrl>https://github.com/laisuk/OpenccJiebaLib</PackageProjectUrl>
         <RepositoryUrl>https://github.com/laisuk/OpenccJiebaLib</RepositoryUrl>
