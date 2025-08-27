@@ -3,46 +3,41 @@
     <PropertyGroup>
         <TargetFramework>netstandard2.0</TargetFramework>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+
         <Title>OpenccJieba C API Interop Library</Title>
         <Authors>laisuk</Authors>
-        <AssemblyVersion>1.0.0.0</AssemblyVersion>
-        <FileVersion>1.0.0.0</FileVersion>
         <Description>opencc-jieba-rs Rust based C API .NET interop library for Chinese text conversion and segmentation between Traditional and Simplified Chinese</Description>
-        <Copyright>laisuk</Copyright>
+        <PackageTags>opencc;chinese;jieba;traditional;simplified;capi</PackageTags>
         <PackageProjectUrl>https://github.com/laisuk/OpenccJiebaLib</PackageProjectUrl>
         <RepositoryUrl>https://github.com/laisuk/OpenccJiebaLib</RepositoryUrl>
         <RepositoryType>git</RepositoryType>
-        <PackageTags>opencc;chinese;jieba;traditional;simplified;capi</PackageTags>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+
+        <AssemblyVersion>1.0.0.0</AssemblyVersion>
+        <FileVersion>1.0.0.0</FileVersion>
     </PropertyGroup>
 
-    <!-- Include README in package -->
+    <!-- Include README and LICENSE at package root -->
     <ItemGroup>
-        <None Include="../README.md" Pack="true" PackagePath="\"/>
+        <None Include="..\README.md" Pack="true" PackagePath="\"/>
+        <None Include="..\LICENSE" Pack="true" PackagePath="\"/>
     </ItemGroup>
 
-    <!-- C API files - included in package and copied to output -->
+    <!-- Pack native assets to the same paths; do NOT copy on build -->
     <ItemGroup>
-        <None Include="runtimes/**/native/*.*">
-            <Pack>true</Pack>
-            <PackagePath>runtimes/</PackagePath>
-            <PackageCopyToOutput>true</PackageCopyToOutput>
-            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-        </None>
+        <None Include="runtimes\win-x64\native\opencc_jieba_capi.dll" 
+              Pack="true" 
+              PackagePath="runtimes/win-x64/native/"/>
+        <None Include="runtimes\linux-x64\native\libopencc_jieba_capi.so"
+              Pack="true"
+              PackagePath="runtimes/linux-x64/native/"/>
+        <None Include="runtimes\osx-arm64\native\libopencc_jieba_capi.dylib"
+              Pack="true"
+              PackagePath="runtimes/osx-arm64/native/"/>
     </ItemGroup>
 
     <ItemGroup>
         <PackageReference Include="System.Memory" Version="4.6.3"/>
     </ItemGroup>
-
-    <ItemGroup>
-      <Folder Include="runtimes\osx-x64\native\" />
-      <Folder Include="runtimes\win-x86\native\" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <Content Include="..\LICENSE">
-        <Link>LICENSE</Link>
-      </Content>
-    </ItemGroup>
-
 </Project>
