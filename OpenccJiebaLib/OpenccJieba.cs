@@ -363,7 +363,7 @@ namespace OpenccJiebaLib
         /// <param name="method">The extraction method ("tfidf" or "textrank").</param>
         /// <returns>A tuple containing an array of keywords and an array of corresponding weights.</returns>
         /// <exception cref="ObjectDisposedException">If the instance has been disposed.</exception>
-        public (string[] keywords, double[] weights) JiebaExtractKeywords(string input, int topK, string method)
+        public (string[] keywords, double[] weights) JiebaExtractKeywordsWeights(string input, int topK, string method)
         {
             if (_disposed) throw new ObjectDisposedException(nameof(OpenccJieba));
             var inputBytes = Encoding.UTF8.GetBytes(input);

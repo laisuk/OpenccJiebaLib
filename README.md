@@ -31,7 +31,7 @@ string[] words = openccJieba.JiebaCut("我来到北京清华大学", hmm: true);
 string[] keywords = openccJieba.JiebaKeywordExtractTfidf("这是一个用于关键词提取的测试文本", topK: 5);
 
 // Extract keywords with weights (TextRank)
-var (kw, weights) = openccJieba.JiebaExtractKeywords("这是一个用于关键词提取的测试文本", 5, "textrank");
+var (kw, weights) = openccJieba.JiebaExtractKeywordsWeights("这是一个用于关键词提取的测试文本", 5, "textrank");
 }
 ```
 ## Supported OpenCC Configurations
@@ -45,7 +45,7 @@ var (kw, weights) = openccJieba.JiebaExtractKeywords("这是一个用于关键�
 - `JiebaCutAndJoin(string input, bool hmm, string delimiter)`
 - `JiebaKeywordExtractTfidf(string input, int topK)`
 - `JiebaKeywordExtractTextRank(string input, int topK)`
-- `JiebaExtractKeywords(string input, int topK, string method)`
+- `JiebaExtractKeywordsWeights(string input, int topK, string method)`
 
 ## Notes
 

@@ -110,7 +110,7 @@ public sealed class OpenccJiebaTests
     }
     
     [TestMethod]
-    public void TestJiebaExtractKeywords()
+    public void TestJiebaExtractKeywordsWeights()
     {
         // Arrange
         const string input = "该剧讲述三位男女在平安夜这一天各自的故事。平安夜的0点，横滨山下码头发生枪杀事件。";
@@ -118,7 +118,7 @@ public sealed class OpenccJiebaTests
         const string method = "textrank";
 
         // Act
-        var (keywords, weights) = _openccJieba.JiebaExtractKeywords(input, topK, method);
+        var (keywords, weights) = _openccJieba.JiebaExtractKeywordsWeights(input, topK, method);
 
         // Assert
         Assert.IsNotNull(keywords, "Keywords should not be null.");
