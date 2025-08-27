@@ -74,6 +74,6 @@ var (kw, weights) = openccJieba.JiebaExtractKeywordsWeights("这是一个用于�
 
 ---
 
-*Powered by OpenCC and Jieba. C# wrapper by [laisuk](https://github.com/laisuk).*
+*Powered by **OpenCC** and **Jieba**. C# wrapper by [laisuk](https://github.com/laisuk).*
 
 ## API Reference
