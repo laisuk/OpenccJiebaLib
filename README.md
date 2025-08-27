@@ -27,16 +27,22 @@ A .NET Standard 2.0 library providing a managed C# wrapper for the Rust-based Op
 ## Usage
 ```csharp
 using OpenccJiebaLib;
-// Create an instance (allocates native resources) using (var openccJieba = new OpenccJieba()) { // Convert Simplified to Traditional Chinese string traditional = openccJieba.Convert("汉字转换测试", "s2t");
+// Create an instance (allocates native resources) 
+using (var openccJieba = new OpenccJieba()) { 
+    // Convert Simplified to Traditional Chinese 
+    string traditional = openccJieba.Convert("汉字转换测试", "s2t");  // 漢字轉換測試
+    
 // Segment text
-string[] words = openccJieba.JiebaCut("我来到北京清华大学", hmm: true);
+string[] words = openccJieba.JiebaCut("我来到北京清华大学", hmm: true);  // 我/ 来到/ 北京/ 清华大学
 
 // Extract keywords (TF-IDF)
-string[] keywords = openccJieba.JiebaKeywordExtractTfidf("这是一个用于关键词提取的测试文本", topK: 5);
+string[] keywords = openccJieba.JiebaKeywordExtractTfidf("这是一个用于关键词提取的测试文本", topK: 5);  // 提取/ 关键词/ 测试/ 用于/ 文本
 
 // Extract keywords with weights (TextRank)
 var (kw, weights) = openccJieba.JiebaExtractKeywordsWeights("这是一个用于关键词提取的测试文本", 5, "textrank");
 }
+// Output: 
+// Keywords Weights TextRank: [('提取', 12214076549.586092), ('关键词', 12213038715.272404), ('测试', 9971894336.779804), ('用于', 9968689471.76825), ('文本', 7771637141.591653)]
 ```
 ## Supported OpenCC Configurations
 
