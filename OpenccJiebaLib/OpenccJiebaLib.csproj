@@ -3,21 +3,35 @@
     <PropertyGroup>
         <TargetFramework>netstandard2.0</TargetFramework>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <Title>OpenccJieba C API Interop Library</Title>
+        <Authors>laisuk</Authors>
+        <AssemblyVersion>1.0.0.0</AssemblyVersion>
+        <FileVersion>1.0.0.0</FileVersion>
+        <Description>opencc-jieba-rs C API .NET interop library for Chinese text conversion and segmentation between Traditional and Simplified Chinese</Description>
+        <Copyright>laisuk</Copyright>
+        <PackageProjectUrl>https://github.com/laisuk/OpenccJiebaLib</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/laisuk/OpenccJiebaLib</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <PackageTags>opencc;chinese;jieba;traditional;simplified;capi</PackageTags>
     </PropertyGroup>
 
+    <!-- Include README in package -->
     <ItemGroup>
-      <PackageReference Include="System.Memory" Version="4.6.3" />
+        <None Include="../README.md" Pack="true" PackagePath="\"/>
+    </ItemGroup>
+
+    <!-- C API files - included in package and copied to output -->
+    <ItemGroup>
+        <None Include="runtimes/**/native/*.*">
+            <Pack>true</Pack>
+            <PackagePath>runtimes/</PackagePath>
+            <PackageCopyToOutput>true</PackageCopyToOutput>
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </None>
     </ItemGroup>
 
     <ItemGroup>
-      <Folder Include="runtimes\osx-arm64\native\" />
-      <Folder Include="runtimes\win-x86\native\" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <None Update="runtimes\win-x64\native\opencc_jieba_capi.dll">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </None>
+        <PackageReference Include="System.Memory" Version="4.6.3"/>
     </ItemGroup>
 
 </Project>
