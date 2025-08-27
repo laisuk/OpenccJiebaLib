@@ -39,4 +39,10 @@
       <Folder Include="runtimes\win-x86\native\" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Content Include="..\LICENSE">
+        <Link>LICENSE</Link>
+      </Content>
+    </ItemGroup>
+
 </Project>
