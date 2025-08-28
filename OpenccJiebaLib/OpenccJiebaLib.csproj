@@ -18,6 +18,8 @@
         <AssemblyVersion>1.0.1.0</AssemblyVersion>
         <FileVersion>1.0.1.0</FileVersion>
         <Version>1.0.1</Version>
+        <PackageReleaseNotes>v1.0.1
+Added snupkg symbol package</PackageReleaseNotes>
     </PropertyGroup>
 
     <!-- Include README and LICENSE at package root -->
