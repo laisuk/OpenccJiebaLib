@@ -3,7 +3,6 @@
     <PropertyGroup>
         <TargetFramework>netstandard2.0</TargetFramework>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-
         <Title>OpenccJieba C API Interop Library</Title>
         <Authors>laisuk</Authors>
         <Description>opencc-jieba-rs Rust based C API .NET interop library for Chinese text conversion and segmentation between Traditional and Simplified Chinese</Description>
@@ -16,8 +15,9 @@
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <IncludeSymbols>true</IncludeSymbols>
         <SymbolPackageFormat>snupkg</SymbolPackageFormat>
-        <AssemblyVersion>1.0.0.0</AssemblyVersion>
-        <FileVersion>1.0.0.0</FileVersion>
+        <AssemblyVersion>1.0.1.0</AssemblyVersion>
+        <FileVersion>1.0.1.0</FileVersion>
+        <Version>1.0.1</Version>
     </PropertyGroup>
 
     <!-- Include README and LICENSE at package root -->
@@ -28,8 +28,8 @@
 
     <!-- Pack native assets to the same paths; do NOT copy on build -->
     <ItemGroup>
-        <None Include="runtimes\win-x64\native\opencc_jieba_capi.dll" 
-              Pack="true" 
+        <None Include="runtimes\win-x64\native\opencc_jieba_capi.dll"
+              Pack="true"
               PackagePath="runtimes/win-x64/native/"/>
         <None Include="runtimes\linux-x64\native\libopencc_jieba_capi.so"
               Pack="true"
@@ -42,4 +42,5 @@
     <ItemGroup>
         <PackageReference Include="System.Memory" Version="4.6.3"/>
     </ItemGroup>
+
 </Project>
