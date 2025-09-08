@@ -20,4 +20,12 @@
       <ProjectReference Include="..\OpenccJiebaLib\OpenccJiebaLib.csproj" />
     </ItemGroup>
 
+    <ItemGroup>
+      <None Update="runtimes\win-x64\native\opencc_jieba_capi.dll">
+        <Pack>true</Pack>
+        <PackagePath>runtimes/win-x64/native/</PackagePath>
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      </None>
+    </ItemGroup>
+
 </Project>
