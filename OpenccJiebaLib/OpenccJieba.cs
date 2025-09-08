@@ -156,56 +156,77 @@ namespace OpenccJiebaLib
         }
 
         /// <summary>
-        /// Converts Chinese text using the specified OpenCC configuration.
+        /// Converts Chinese text using the specified OpenCC configuration, optionally including punctuation conversion.
+        /// This method validates the instance state, normalizes the configuration (defaulting to <c>"s2t"</c> if unknown),
+        /// and calls the native converter using pooled UTF-8 buffers for efficiency.
         /// </summary>
         /// <param name="input">The input string to convert.</param>
-        /// <param name="config">The OpenCC configuration name (e.g., "s2t", "t2s").</param>
+        /// <param name="config">
+        /// The OpenCC configuration name (e.g., <c>"s2t"</c>, <c>"t2s"</c>). If the value is not recognized,
+        /// the method falls back to <c>"s2t"</c>.
+        /// </param>
         /// <param name="punctuation">Whether to convert punctuation as well.</param>
-        /// <returns>The converted string, or an empty string if input is null or empty.</returns>
-        /// <exception cref="ObjectDisposedException">If the instance has been disposed.</exception>
+        /// <returns>The converted string; returns an empty string if <paramref name="input"/> is null or empty.</returns>
+        /// <exception cref="ObjectDisposedException">Thrown if this instance has been disposed.</exception>
+        /// <exception cref="InvalidOperationException">Thrown if the native instance is not initialized or has been disposed.</exception>
+        /// <exception cref="ArgumentException">
+        /// Thrown if the (normalized) configuration cannot be resolved to a cached byte sequence.
+        /// </exception>
+        /// <remarks>
+        /// Implementation details:
+        /// <list type="bullet">
+        /// <item>Uses <see cref="ArrayPool{T}"/> to rent a UTF-8 buffer and appends a null terminator for the native API.</item>
+        /// <item>Ensures native output memory is freed via <c>opencc_jieba_free_string</c> in a <c>finally</c> block.</item>
+        /// <item>Relies on a precomputed <c>EncodedConfigCache</c> (config → UTF-8 bytes) for fast lookups.</item>
+        /// </list>
+        /// </remarks>
+        /// <example>
+        /// <code>
+        /// using (var converter = new OpenccJieba())
+        /// {
+        ///     string original = "汉字简繁转换";
+        ///     string converted = converter.Convert(original, "s2t", punctuation: true);
+        ///     Console.WriteLine(converted); // Output: 漢字簡繁轉換
+        /// }
+        /// </code>
+        /// </example>
         public string Convert(string input, string config, bool punctuation = false)
         {
             if (_disposed) throw new ObjectDisposedException(nameof(OpenccJieba));
             if (string.IsNullOrEmpty(input)) return string.Empty;
 
-            // Ensure config is valid, default to "s2t" if not
+            // Normalize/validate config with a safe default.
             config = ConfigList.Contains(config) ? config : "s2t";
 
-            return ConvertBy(input, config, punctuation);
-        }
-
-        /// <summary>
-        /// Internal conversion helper using pre-encoded config bytes.
-        /// </summary>
-        private string ConvertBy(string input, string config, bool punctuation = false)
-        {
             if (_openccInstance == IntPtr.Zero)
                 throw new InvalidOperationException("Native instance is not initialized or has been disposed.");
 
-            byte[] inputBytes = null;
-            var configBytes = EncodedConfigCache[config];
+            byte[] rented = null;
             var output = IntPtr.Zero;
-            string convertedString;
 
             try
             {
-                var inputByteCount = Encoding.UTF8.GetByteCount(input);
-                inputBytes = ArrayPool<byte>.Shared.Rent(inputByteCount + 1);
-                Encoding.UTF8.GetBytes(input, 0, input.Length, inputBytes, 0);
-                inputBytes[inputByteCount] = 0x00; // Null-terminate
+                if (!EncodedConfigCache.TryGetValue(config, out var configBytes))
+                    throw new ArgumentException("Unknown OpenCC configuration: " + config, nameof(config));
 
-                output = opencc_jieba_convert(_openccInstance, inputBytes, configBytes, punctuation);
-                convertedString = Utf8BytesToString(output);
+                var byteCount = Encoding.UTF8.GetByteCount(input);
+                rented = ArrayPool<byte>.Shared.Rent(byteCount + 1);
+
+                // Encode to UTF-8 and null-terminate for the native API.
+                Encoding.UTF8.GetBytes(input, 0, input.Length, rented, 0);
+                rented[byteCount] = 0x00;
+
+                output = opencc_jieba_convert(_openccInstance, rented, configBytes, punctuation);
+                return Utf8BytesToString(output);
             }
             finally
             {
-                if (inputBytes != null)
-                    ArrayPool<byte>.Shared.Return(inputBytes);
+                if (rented != null)
+                    ArrayPool<byte>.Shared.Return(rented);
 
-                if (output != IntPtr.Zero) opencc_jieba_free_string(output);
+                if (output != IntPtr.Zero)
+                    opencc_jieba_free_string(output);
             }
-
-            return convertedString;
         }
 
         /// <summary>
