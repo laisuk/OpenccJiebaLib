@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Buffers;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 
@@ -444,6 +445,7 @@ namespace OpenccJiebaLib
         /// </summary>
         /// <param name="str">The input string.</param>
         /// <returns>UTF-8 encoded byte array, null-terminated.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static byte[] StringToUtf8Bytes(string str)
         {
             if (str == null)
@@ -461,6 +463,7 @@ namespace OpenccJiebaLib
         /// </summary>
         /// <param name="ptr">Pointer to the UTF-8 string.</param>
         /// <returns>The managed string.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static unsafe string Utf8BytesToString(IntPtr ptr)
         {
             if (ptr == IntPtr.Zero)
@@ -483,6 +486,7 @@ namespace OpenccJiebaLib
         /// </summary>
         /// <param name="stringArrayPtr">Pointer to the array of string pointers.</param>
         /// <returns>Managed array of strings.</returns>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static unsafe string[] MarshalNullTerminatedStringArray(IntPtr stringArrayPtr)
         {
             if (stringArrayPtr == IntPtr.Zero)

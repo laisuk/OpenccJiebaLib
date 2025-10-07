@@ -6,6 +6,15 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.1.0] 2025-10-07
+
+### Changed
+
+- Update opencc-jieba-rs C API to v0.7.1
+- Inline code optimization
+
+---
+
 ## [1.0.1] – 2025-08-28
 
 ### Added

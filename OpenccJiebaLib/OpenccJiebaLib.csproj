@@ -15,11 +15,12 @@
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <IncludeSymbols>true</IncludeSymbols>
         <SymbolPackageFormat>snupkg</SymbolPackageFormat>
-        <AssemblyVersion>1.0.1.0</AssemblyVersion>
-        <FileVersion>1.0.1.0</FileVersion>
-        <Version>1.0.1</Version>
-        <PackageReleaseNotes>v1.0.1
-Added snupkg symbol package</PackageReleaseNotes>
+        <AssemblyVersion>1.1.0.0</AssemblyVersion>
+        <FileVersion>1.1.0.0</FileVersion>
+        <Version>1.1.0</Version>
+        <PackageReleaseNotes>v1.1.0
+Update opencc-jieba-rs C API natives to v0.7.1
+        </PackageReleaseNotes>
     </PropertyGroup>
 
     <!-- Include README and LICENSE at package root -->
