@@ -15,11 +15,15 @@
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <IncludeSymbols>true</IncludeSymbols>
         <SymbolPackageFormat>snupkg</SymbolPackageFormat>
-        <AssemblyVersion>1.1.0.0</AssemblyVersion>
-        <FileVersion>1.1.0.0</FileVersion>
-        <Version>1.1.0</Version>
-        <PackageReleaseNotes>v1.1.0
-Update opencc-jieba-rs C API natives to v0.7.1
+        <!-- Generate the XML doc file alongside the DLL -->
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <!-- (Optional) don’t warn about undocumented public members -->
+        <NoWarn>$(NoWarn);1591</NoWarn>
+        <AssemblyVersion>1.1.1.0</AssemblyVersion>
+        <FileVersion>1.1.1.0</FileVersion>
+        <Version>1.1.1</Version>
+        <PackageReleaseNotes>v1.1.1
+Update opencc-jieba-rs C API natives to v0.7.2
         </PackageReleaseNotes>
     </PropertyGroup>
 
