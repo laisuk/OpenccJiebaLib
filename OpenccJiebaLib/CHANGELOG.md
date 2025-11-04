@@ -6,11 +6,18 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
-## [1.1.1] - 2025-11-05
+## [1.1.2] - 2025-11-05
 
 ### Changed
 
 - Extract native codes to its own class
+
+---
+
+## [1.1.1] - 2025-10-30
+
+### Changed
+
 - Added detail documentation
 
 ---
