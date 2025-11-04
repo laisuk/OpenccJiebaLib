@@ -123,8 +123,8 @@ public sealed class OpenccJiebaTests
         // Assert
         Assert.IsNotNull(keywords, "Keywords should not be null.");
         Assert.IsNotNull(weights, "Weights should not be null.");
-        Assert.AreEqual(topK, keywords.Length, "The number of extracted keywords does not match the expected count.");
-        Assert.AreEqual(topK, weights.Length, "The number of extracted weights does not match the expected count.");
+        Assert.HasCount(topK, keywords, "The number of extracted keywords does not match the expected count.");
+        Assert.HasCount(topK, weights, "The number of extracted weights does not match the expected count.");
 
         // Additional assertions can be made on the keywords and weights if expected values are known
         // For example:
