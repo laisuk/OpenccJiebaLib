@@ -18,9 +18,6 @@ namespace OpenccJiebaLib
         private IntPtr _openccInstance; // Native instance pointer
         private bool _disposed; // Tracks whether Dispose has been called
 
-        // Define constants
-        private const string DllPath = "opencc_jieba_capi"; // Name of the native DLL
-
         // Pre-encoded config bytes for common configurations
         private static readonly Dictionary<string, byte[]> EncodedConfigCache =
             new Dictionary<string, byte[]>(StringComparer.Ordinal);
@@ -34,56 +31,6 @@ namespace OpenccJiebaLib
             },
             StringComparer.Ordinal);
 
-        #region Native Function Imports
-
-        // Native function imports using P/Invoke
-
-        [DllImport(DllPath, CallingConvention = CallingConvention.Cdecl)]
-        private static extern IntPtr opencc_jieba_new();
-
-        [DllImport(DllPath, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void opencc_jieba_delete(IntPtr opencc);
-
-        [DllImport(DllPath, CallingConvention = CallingConvention.Cdecl)]
-        private static extern IntPtr opencc_jieba_convert(IntPtr opencc, byte[] input, byte[] config, bool punctuation);
-
-        [DllImport(DllPath, CallingConvention = CallingConvention.Cdecl)]
-        private static extern int opencc_jieba_zho_check(IntPtr opencc, byte[] input);
-
-        [DllImport(DllPath, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void opencc_jieba_free_string(IntPtr str);
-
-        [DllImport(DllPath, CallingConvention = CallingConvention.Cdecl)]
-        private static extern IntPtr opencc_jieba_cut(IntPtr opencc, byte[] input, bool hmm);
-
-        [DllImport(DllPath, CallingConvention = CallingConvention.Cdecl)]
-        private static extern IntPtr opencc_jieba_cut_and_join(IntPtr opencc, byte[] input, bool hmm, byte[] delimiter);
-
-        [DllImport(DllPath, CallingConvention = CallingConvention.Cdecl)]
-        private static extern IntPtr opencc_jieba_free_string_array(IntPtr array);
-
-        [DllImport(DllPath, CallingConvention = CallingConvention.Cdecl)]
-        private static extern IntPtr opencc_jieba_keywords(IntPtr opencc, byte[] input, int topK, byte[] method);
-
-        [DllImport(DllPath, CallingConvention = CallingConvention.Cdecl)]
-        private static extern int opencc_jieba_keywords_and_weights(
-            IntPtr instance,
-            byte[] input,
-            IntPtr topK,
-            byte[] method,
-            out IntPtr outLen,
-            out IntPtr outKeywords,
-            out IntPtr outWeights
-        );
-
-        [DllImport(DllPath, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void opencc_jieba_free_keywords_and_weights(
-            IntPtr keywords,
-            IntPtr weights,
-            IntPtr len
-        );
-
-        #endregion
 
         // Static constructor to pre-encode common config strings for efficient native interop
         static OpenccJieba()
@@ -108,7 +55,7 @@ namespace OpenccJiebaLib
         /// <exception cref="InvalidOperationException">Thrown if the native instance cannot be initialized.</exception>
         public OpenccJieba()
         {
-            _openccInstance = opencc_jieba_new();
+            _openccInstance = OpenccJiebaNative.opencc_jieba_new();
             if (_openccInstance == IntPtr.Zero)
             {
                 throw new InvalidOperationException("Failed to initialize native OpenCC/Jieba instance.");
@@ -141,7 +88,7 @@ namespace OpenccJiebaLib
             // Free unmanaged resources
             if (_openccInstance != IntPtr.Zero)
             {
-                opencc_jieba_delete(_openccInstance);
+                OpenccJiebaNative.opencc_jieba_delete(_openccInstance);
                 _openccInstance = IntPtr.Zero;
             }
 
@@ -217,7 +164,7 @@ namespace OpenccJiebaLib
                 Encoding.UTF8.GetBytes(input, 0, input.Length, rented, 0);
                 rented[byteCount] = 0x00;
 
-                output = opencc_jieba_convert(_openccInstance, rented, configBytes, punctuation);
+                output = OpenccJiebaNative.opencc_jieba_convert(_openccInstance, rented, configBytes, punctuation);
                 return Utf8BytesToString(output);
             }
             finally
@@ -226,7 +173,7 @@ namespace OpenccJiebaLib
                     ArrayPool<byte>.Shared.Return(rented);
 
                 if (output != IntPtr.Zero)
-                    opencc_jieba_free_string(output);
+                    OpenccJiebaNative.opencc_jieba_free_string(output);
             }
         }
 
@@ -254,7 +201,7 @@ namespace OpenccJiebaLib
                 Encoding.UTF8.GetBytes(input, 0, input.Length, inputBytes, 0);
                 inputBytes[inputByteCount] = 0x00; // Null-terminate
 
-                code = opencc_jieba_zho_check(_openccInstance, inputBytes);
+                code = OpenccJiebaNative.opencc_jieba_zho_check(_openccInstance, inputBytes);
             }
             finally
             {
@@ -280,14 +227,14 @@ namespace OpenccJiebaLib
             if (_openccInstance == IntPtr.Zero)
                 throw new InvalidOperationException("Native instance is not initialized or has been disposed.");
 
-            var result = opencc_jieba_cut(_openccInstance, inputBytes, hmm);
+            var result = OpenccJiebaNative.opencc_jieba_cut(_openccInstance, inputBytes, hmm);
 
             if (result == IntPtr.Zero)
                 return Array.Empty<string>();
 
             var words = MarshalNullTerminatedStringArray(result);
 
-            if (result != IntPtr.Zero) opencc_jieba_free_string_array(result);
+            if (result != IntPtr.Zero) OpenccJiebaNative.opencc_jieba_free_string_array(result);
 
             return words;
         }
@@ -309,14 +256,15 @@ namespace OpenccJiebaLib
             var inputBytes = StringToUtf8Bytes(input);
             var delimiterBytes = StringToUtf8Bytes(delimiter);
 
-            var resultPtr = opencc_jieba_cut_and_join(_openccInstance, inputBytes, hmm, delimiterBytes);
+            var resultPtr =
+                OpenccJiebaNative.opencc_jieba_cut_and_join(_openccInstance, inputBytes, hmm, delimiterBytes);
 
             if (resultPtr == IntPtr.Zero)
                 return string.Empty;
 
             var result = Utf8BytesToString(resultPtr);
 
-            opencc_jieba_free_string(resultPtr);
+            OpenccJiebaNative.opencc_jieba_free_string(resultPtr);
 
             return result;
         }
@@ -337,14 +285,14 @@ namespace OpenccJiebaLib
             if (_openccInstance == IntPtr.Zero)
                 throw new InvalidOperationException("Native instance is not initialized or has been disposed.");
 
-            var result = opencc_jieba_keywords(_openccInstance, inputBytes, topK, methodBytes);
+            var result = OpenccJiebaNative.opencc_jieba_keywords(_openccInstance, inputBytes, topK, methodBytes);
 
             if (result == IntPtr.Zero)
                 return Array.Empty<string>();
 
             var keywords = MarshalNullTerminatedStringArray(result);
 
-            if (result != IntPtr.Zero) opencc_jieba_free_string_array(result);
+            if (result != IntPtr.Zero) OpenccJiebaNative.opencc_jieba_free_string_array(result);
 
             return keywords;
         }
@@ -365,14 +313,14 @@ namespace OpenccJiebaLib
             if (_openccInstance == IntPtr.Zero)
                 throw new InvalidOperationException("Native instance is not initialized or has been disposed.");
 
-            var result = opencc_jieba_keywords(_openccInstance, inputBytes, topK, methodBytes);
+            var result = OpenccJiebaNative.opencc_jieba_keywords(_openccInstance, inputBytes, topK, methodBytes);
 
             if (result == IntPtr.Zero)
                 return Array.Empty<string>();
 
             var keywords = MarshalNullTerminatedStringArray(result);
 
-            if (result != IntPtr.Zero) opencc_jieba_free_string_array(result);
+            if (result != IntPtr.Zero) OpenccJiebaNative.opencc_jieba_free_string_array(result);
 
             return keywords;
         }
@@ -399,7 +347,7 @@ namespace OpenccJiebaLib
                 if (_openccInstance == IntPtr.Zero)
                     throw new InvalidOperationException("Native instance is not initialized or has been disposed.");
 
-                var result = opencc_jieba_keywords_and_weights(
+                var result = OpenccJiebaNative.opencc_jieba_keywords_and_weights(
                     _openccInstance,
                     inputBytes,
                     (IntPtr)topK,
@@ -433,7 +381,7 @@ namespace OpenccJiebaLib
                 // Free memory for keywords and weights using the C API function
                 if (keywordsPtr != IntPtr.Zero && weightsPtr != IntPtr.Zero)
                 {
-                    opencc_jieba_free_keywords_and_weights(keywordsPtr, weightsPtr, keywordCountPtr);
+                    OpenccJiebaNative.opencc_jieba_free_keywords_and_weights(keywordsPtr, weightsPtr, keywordCountPtr);
                 }
             }
         }
