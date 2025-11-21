@@ -66,7 +66,7 @@ namespace OpenccJiebaLib
             IntPtr opencc,
             byte[] input,
             byte[] config,
-            bool punctuation);
+            [MarshalAs(UnmanagedType.I1)] bool punctuation);
 
         /// <summary>
         /// Determines the script type (Simplified or Traditional) of the given Chinese text.

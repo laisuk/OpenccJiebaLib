@@ -12,6 +12,10 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 
 - Extract native codes to its own class
 
+### Fixed
+
+- Fixed ABI mismatch in C# P/Invoke by using `UnmanagedType.I1` for Rust bool parameters (`OpenccFmmsegLib` / `OpenccJiebaLib`).
+
 ---
 
 ## [1.1.1] - 2025-10-30
