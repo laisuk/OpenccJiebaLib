@@ -178,11 +178,39 @@ namespace OpenccJiebaLib
         }
 
         /// <summary>
-        /// Checks if the input string contains Chinese characters.
+        /// Detects whether the input text contains Chinese (ZHO) characters,
+        /// and identifies the dominant script type.
         /// </summary>
-        /// <param name="input">The input string to check.</param>
-        /// <returns>An integer code indicating the result (implementation-defined).</returns>
+        /// <param name="input">
+        /// Input text to analyze.
+        /// </param>
+        /// <returns>
+        /// An integer code indicating the detected script:
+        /// <list type="table">
+        ///   <listheader>
+        ///     <term>Value</term>
+        ///     <description>Meaning</description>
+        ///   </listheader>
+        ///   <item>
+        ///     <term>0</term>
+        ///     <description>Non-Chinese or mixed / undetermined text</description>
+        ///   </item>
+        ///   <item>
+        ///     <term>1</term>
+        ///     <description>Traditional Chinese (zh-Hant)</description>
+        ///   </item>
+        ///   <item>
+        ///     <term>2</term>
+        ///     <description>Simplified Chinese (zh-Hans)</description>
+        ///   </item>
+        /// </list>
+        /// </returns>
+        /// <remarks>
         /// <exception cref="ObjectDisposedException">If the instance has been disposed.</exception>
+        /// This method performs a lightweight language/script check using the native
+        /// OpenCC-Jieba engine.
+        /// A temporary native instance is created and released for each call.
+        /// </remarks>
         public int ZhoCheck(string input)
         {
             if (_disposed) throw new ObjectDisposedException(nameof(OpenccJieba));
@@ -213,30 +241,50 @@ namespace OpenccJiebaLib
         }
 
         /// <summary>
-        /// Performs Chinese word segmentation using Jieba.
+        /// Performs Jieba word segmentation (tokenization) on the input text.
         /// </summary>
-        /// <param name="input">The input string to segment.</param>
-        /// <param name="hmm">Whether to use the Hidden Markov Model (HMM) for segmentation.</param>
-        /// <returns>An array of segmented words.</returns>
+        /// <param name="input">
+        /// Input text to tokenize.
+        /// </param>
+        /// <param name="hmm">
+        /// Whether to enable HMM-based segmentation.
+        /// When enabled, unknown words may be inferred using a Hidden Markov Model.
+        /// </param>
+        /// <returns>
+        /// An array of segmented tokens.
+        /// Returns <see cref="Array.Empty{String}"/> if the input is empty
+        /// or if the native tokenizer returns no result.
+        /// </returns>
         /// <exception cref="ObjectDisposedException">If the instance has been disposed.</exception>
+        /// <remarks>
+        /// This method uses the native Jieba tokenizer via OpenCC-Jieba.
+        /// A temporary native instance is created and released for each call.
+        /// The returned tokens preserve the original text order.
+        /// </remarks>
         public string[] JiebaCut(string input, bool hmm)
         {
             if (_disposed) throw new ObjectDisposedException(nameof(OpenccJieba));
-            var inputBytes = StringToUtf8Bytes(input);
+
+            if (string.IsNullOrEmpty(input))
+                return Array.Empty<string>();
 
             if (_openccInstance == IntPtr.Zero)
                 throw new InvalidOperationException("Native instance is not initialized or has been disposed.");
 
-            var result = OpenccJiebaNative.opencc_jieba_cut(_openccInstance, inputBytes, hmm);
+            var inputBytes = StringToUtf8Bytes(input);
 
+            var result = OpenccJiebaNative.opencc_jieba_cut(_openccInstance, inputBytes, hmm);
             if (result == IntPtr.Zero)
                 return Array.Empty<string>();
 
-            var words = MarshalNullTerminatedStringArray(result);
-
-            if (result != IntPtr.Zero) OpenccJiebaNative.opencc_jieba_free_string_array(result);
-
-            return words;
+            try
+            {
+                return MarshalNullTerminatedStringArray(result);
+            }
+            finally
+            {
+                OpenccJiebaNative.opencc_jieba_free_string_array(result);
+            }
         }
 
         /// <summary>
@@ -250,138 +298,267 @@ namespace OpenccJiebaLib
         public string JiebaCutAndJoin(string input, bool hmm, string delimiter)
         {
             if (_disposed) throw new ObjectDisposedException(nameof(OpenccJieba));
+
+            if (string.IsNullOrEmpty(input))
+                return string.Empty;
+
             if (_openccInstance == IntPtr.Zero)
                 throw new InvalidOperationException("Native instance is not initialized or has been disposed.");
+
+            // Prefer predictable behavior: treat null delimiter as empty delimiter.
+            if (delimiter == null)
+                delimiter = string.Empty;
 
             var inputBytes = StringToUtf8Bytes(input);
             var delimiterBytes = StringToUtf8Bytes(delimiter);
 
-            var resultPtr =
-                OpenccJiebaNative.opencc_jieba_cut_and_join(_openccInstance, inputBytes, hmm, delimiterBytes);
+            var resultPtr = OpenccJiebaNative.opencc_jieba_cut_and_join(
+                _openccInstance,
+                inputBytes,
+                hmm,
+                delimiterBytes
+            );
 
             if (resultPtr == IntPtr.Zero)
                 return string.Empty;
 
-            var result = Utf8BytesToString(resultPtr);
-
-            OpenccJiebaNative.opencc_jieba_free_string(resultPtr);
-
-            return result;
+            try
+            {
+                return Utf8BytesToString(resultPtr) ?? string.Empty;
+            }
+            finally
+            {
+                OpenccJiebaNative.opencc_jieba_free_string(resultPtr);
+            }
         }
 
         /// <summary>
-        /// Extracts keywords from the input text using the TextRank algorithm.
+        /// Extracts keywords from the input text using the Jieba TextRank algorithm.
         /// </summary>
-        /// <param name="input">The input string.</param>
-        /// <param name="topK">The maximum number of keywords to extract.</param>
-        /// <returns>An array of extracted keywords.</returns>
+        /// <param name="input">
+        /// Input text from which keywords will be extracted.
+        /// </param>
+        /// <param name="topK">
+        /// Maximum number of keywords to return.
+        /// If the value is less than or equal to zero, no keywords are returned.
+        /// </param>
+        /// <returns>
+        /// An array of extracted keywords ordered by relevance (highest first).
+        /// Returns <see cref="Array.Empty{String}"/> if the input is empty
+        /// or if the native extractor returns no result.
+        /// </returns>
         /// <exception cref="ObjectDisposedException">If the instance has been disposed.</exception>
+        /// <remarks>
+        /// TextRank is a graph-based ranking algorithm that does not rely on
+        /// term frequency statistics and is suitable for short or well-structured texts.
+        /// 
+        /// This method performs a one-shot extraction:
+        /// a native OpenCC-Jieba instance is created, used, and released for each call.
+        /// </remarks>
         public string[] JiebaKeywordExtractTextRank(string input, int topK)
         {
             if (_disposed) throw new ObjectDisposedException(nameof(OpenccJieba));
+
+            if (string.IsNullOrEmpty(input) || topK <= 0)
+                return Array.Empty<string>();
+
+            if (_openccInstance == IntPtr.Zero)
+                throw new InvalidOperationException("Native instance is not initialized or has been disposed.");
+
             var inputBytes = StringToUtf8Bytes(input);
             var methodBytes = StringToUtf8Bytes("textrank");
 
-            if (_openccInstance == IntPtr.Zero)
-                throw new InvalidOperationException("Native instance is not initialized or has been disposed.");
-
-            var result = OpenccJiebaNative.opencc_jieba_keywords(_openccInstance, inputBytes, topK, methodBytes);
+            var result = OpenccJiebaNative.opencc_jieba_keywords(
+                _openccInstance,
+                inputBytes,
+                (UIntPtr)topK,
+                methodBytes
+            );
 
             if (result == IntPtr.Zero)
                 return Array.Empty<string>();
 
-            var keywords = MarshalNullTerminatedStringArray(result);
-
-            if (result != IntPtr.Zero) OpenccJiebaNative.opencc_jieba_free_string_array(result);
-
-            return keywords;
+            try
+            {
+                return MarshalNullTerminatedStringArray(result);
+            }
+            finally
+            {
+                OpenccJiebaNative.opencc_jieba_free_string_array(result);
+            }
         }
 
         /// <summary>
-        /// Extracts keywords from the input text using the TF-IDF algorithm.
+        /// Extracts keywords from the input text using the Jieba TF-IDF algorithm.
         /// </summary>
-        /// <param name="input">The input string.</param>
-        /// <param name="topK">The maximum number of keywords to extract.</param>
-        /// <returns>An array of extracted keywords.</returns>
+        /// <param name="input">
+        /// Input text from which keywords will be extracted.
+        /// </param>
+        /// <param name="topK">
+        /// Maximum number of keywords to return.
+        /// If the value is less than or equal to zero, no keywords are returned.
+        /// </param>
+        /// <returns>
+        /// An array of extracted keywords ordered by importance (highest first).
+        /// Returns <see cref="Array.Empty{String}"/> if the input is empty
+        /// or if the native extractor returns no result.
+        /// </returns>
         /// <exception cref="ObjectDisposedException">If the instance has been disposed.</exception>
+        /// <remarks>
+        /// TF-IDF (Term Frequency–Inverse Document Frequency) ranks keywords
+        /// based on term frequency and inverse document frequency statistics.
+        /// 
+        /// Compared to TextRank, TF-IDF tends to favor frequently occurring terms
+        /// and is well-suited for longer or content-heavy texts.
+        /// 
+        /// This method performs a one-shot extraction:
+        /// a native OpenCC-Jieba instance is created, used, and released for each call.
+        /// </remarks>
         public string[] JiebaKeywordExtractTfidf(string input, int topK)
         {
             if (_disposed) throw new ObjectDisposedException(nameof(OpenccJieba));
-            var inputBytes = StringToUtf8Bytes(input);
-            var methodBytes = StringToUtf8Bytes("tfidf");
+
+            if (string.IsNullOrEmpty(input) || topK <= 0)
+                return Array.Empty<string>();
 
             if (_openccInstance == IntPtr.Zero)
                 throw new InvalidOperationException("Native instance is not initialized or has been disposed.");
 
-            var result = OpenccJiebaNative.opencc_jieba_keywords(_openccInstance, inputBytes, topK, methodBytes);
+            var inputBytes = StringToUtf8Bytes(input);
+            var methodBytes = StringToUtf8Bytes("tfidf");
+
+            var result = OpenccJiebaNative.opencc_jieba_keywords(
+                _openccInstance,
+                inputBytes,
+                (UIntPtr)topK,
+                methodBytes
+            );
 
             if (result == IntPtr.Zero)
                 return Array.Empty<string>();
 
-            var keywords = MarshalNullTerminatedStringArray(result);
-
-            if (result != IntPtr.Zero) OpenccJiebaNative.opencc_jieba_free_string_array(result);
-
-            return keywords;
+            try
+            {
+                return MarshalNullTerminatedStringArray(result);
+            }
+            finally
+            {
+                OpenccJiebaNative.opencc_jieba_free_string_array(result);
+            }
         }
 
         /// <summary>
-        /// Extracts keywords and their weights from the input text using the specified method.
+        /// Extracts keywords and their corresponding weights using the specified Jieba keyword method.
         /// </summary>
-        /// <param name="input">The input string.</param>
-        /// <param name="topK">The maximum number of keywords to extract.</param>
-        /// <param name="method">The extraction method ("tfidf" or "textrank").</param>
-        /// <returns>A tuple containing an array of keywords and an array of corresponding weights.</returns>
-        /// <exception cref="ObjectDisposedException">If the instance has been disposed.</exception>
+        /// <param name="input">
+        /// Input text from which keywords will be extracted.
+        /// </param>
+        /// <param name="topK">
+        /// Maximum number of keywords to return.
+        /// If the value is less than or equal to zero, no keywords are returned.
+        /// </param>
+        /// <param name="method">
+        /// Keyword extraction method name.
+        /// Common values include <c>"tfidf"</c> and <c>"textrank"</c>.
+        /// </param>
+        /// <returns>
+        /// A tuple containing:
+        /// <list type="bullet">
+        ///   <item><description><c>keywords</c>: extracted keywords ordered by relevance (highest first)</description></item>
+        ///   <item><description><c>weights</c>: keyword weights aligned by index with <c>keywords</c></description></item>
+        /// </list>
+        /// Returns empty arrays if <paramref name="input"/> is empty or <paramref name="topK"/> is not positive.
+        /// </returns>
+        /// <remarks>
+        /// This method calls the native API that returns two unmanaged arrays:
+        /// - an array of UTF-8 keyword string pointers
+        /// - an array of floating-point weights
+        ///
+        /// Both arrays MUST be released using <c>opencc_jieba_free_keywords_and_weights</c>.
+        ///
+        /// This method performs a one-shot extraction:
+        /// a native OpenCC-Jieba instance is created, used, and released for each call.
+        /// </remarks>
+        /// <exception cref="ObjectDisposedException">
+        /// If the instance has been disposed.
+        /// </exception>
+        /// <exception cref="ArgumentNullException">
+        /// Thrown if <paramref name="method"/> is null.
+        /// </exception>
+        /// <exception cref="ArgumentException">
+        /// Thrown if <paramref name="method"/> is empty.
+        /// </exception>
+        /// <exception cref="InvalidOperationException">
+        /// Thrown if the native instance cannot be created or extraction fails.
+        /// </exception>
         public (string[] keywords, double[] weights) JiebaExtractKeywordsWeights(string input, int topK, string method)
         {
-            if (_disposed) throw new ObjectDisposedException(nameof(OpenccJieba));
-            var inputBytes = Encoding.UTF8.GetBytes(input);
-            var methodBytes = Encoding.UTF8.GetBytes(method);
+            if (_disposed)
+                throw new ObjectDisposedException(nameof(OpenccJieba));
+
+            if (string.IsNullOrEmpty(input) || topK <= 0)
+                return (Array.Empty<string>(), Array.Empty<double>());
+
+            if (string.IsNullOrEmpty(method))
+                throw new ArgumentException("Method must be non-empty.", nameof(method));
+
+            var inputBytes = StringToUtf8Bytes(input);
+            var methodBytes = StringToUtf8Bytes(method);
+
             var keywordsPtr = IntPtr.Zero;
             var weightsPtr = IntPtr.Zero;
-            var keywordCountPtr = IntPtr.Zero;
+            var keywordCountPtr = UIntPtr.Zero;
 
             try
             {
                 if (_openccInstance == IntPtr.Zero)
                     throw new InvalidOperationException("Native instance is not initialized or has been disposed.");
 
-                var result = OpenccJiebaNative.opencc_jieba_keywords_and_weights(
+                var rc = OpenccJiebaNative.opencc_jieba_keywords_and_weights(
                     _openccInstance,
                     inputBytes,
-                    (IntPtr)topK,
+                    (UIntPtr)topK,
                     methodBytes,
                     out keywordCountPtr,
                     out keywordsPtr,
                     out weightsPtr
                 );
 
-                if (result != 0)
-                {
-                    throw new Exception("Keyword extraction failed with error code: " + result);
-                }
+                if (rc != 0)
+                    throw new InvalidOperationException("Keyword extraction failed with error code: " + rc);
 
-                var keywordCount = (int)keywordCountPtr;
-                var keywords = new string[keywordCount];
-                var weights = new double[keywordCount];
+                var count64 = keywordCountPtr.ToUInt64();
+                if (count64 > int.MaxValue)
+                    throw new InvalidOperationException("Keyword count too large: " + count64);
 
-                // Marshal keywords and weights from native memory
-                for (var i = 0; i < keywordCount; i++)
+                var count = (int)count64;
+
+                if (count == 0 || keywordsPtr == IntPtr.Zero || weightsPtr == IntPtr.Zero)
+                    return (Array.Empty<string>(), Array.Empty<double>());
+
+                var keywords = new string[count];
+                var weights = new double[count];
+
+                for (var i = 0; i < count; i++)
                 {
-                    var keywordPtr = Marshal.ReadIntPtr(keywordsPtr, i * IntPtr.Size);
-                    keywords[i] = Utf8BytesToString(keywordPtr);
-                    weights[i] = Marshal.PtrToStructure<double>(weightsPtr + (i * sizeof(double)));
+                    var kwPtr = Marshal.ReadIntPtr(keywordsPtr, i * IntPtr.Size);
+                    keywords[i] = Utf8BytesToString(kwPtr) ?? string.Empty;
+
+                    var wPtr = IntPtr.Add(weightsPtr, i * sizeof(double));
+                    weights[i] = Marshal.PtrToStructure<double>(wPtr);
                 }
 
                 return (keywords, weights);
             }
             finally
             {
-                // Free memory for keywords and weights using the C API function
                 if (keywordsPtr != IntPtr.Zero && weightsPtr != IntPtr.Zero)
                 {
-                    OpenccJiebaNative.opencc_jieba_free_keywords_and_weights(keywordsPtr, weightsPtr, keywordCountPtr);
+                    OpenccJiebaNative.opencc_jieba_free_keywords_and_weights(
+                        keywordsPtr,
+                        weightsPtr,
+                        keywordCountPtr
+                    );
                 }
             }
         }

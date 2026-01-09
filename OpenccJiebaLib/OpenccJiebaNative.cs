@@ -148,7 +148,7 @@ namespace OpenccJiebaLib
         internal static extern IntPtr opencc_jieba_keywords(
             IntPtr opencc,
             byte[] input,
-            int topK,
+            UIntPtr topK,
             byte[] method);
 
         /// <summary>
@@ -166,9 +166,9 @@ namespace OpenccJiebaLib
         internal static extern int opencc_jieba_keywords_and_weights(
             IntPtr instance,
             byte[] input,
-            IntPtr topK,
+            UIntPtr topK,
             byte[] method,
-            out IntPtr outLen,
+            out UIntPtr outLen,
             out IntPtr outKeywords,
             out IntPtr outWeights);
 
@@ -182,6 +182,6 @@ namespace OpenccJiebaLib
         internal static extern void opencc_jieba_free_keywords_and_weights(
             IntPtr keywords,
             IntPtr weights,
-            IntPtr len);
+            UIntPtr len);
     }
 }
