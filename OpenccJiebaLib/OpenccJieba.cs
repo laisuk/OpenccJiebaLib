@@ -206,11 +206,11 @@ namespace OpenccJiebaLib
         /// </list>
         /// </returns>
         /// <remarks>
-        /// <exception cref="ObjectDisposedException">If the instance has been disposed.</exception>
         /// This method performs a lightweight language/script check using the native
         /// OpenCC-Jieba engine.
         /// A temporary native instance is created and released for each call.
         /// </remarks>
+        /// <exception cref="ObjectDisposedException">If the instance has been disposed.</exception>
         public int ZhoCheck(string input)
         {
             if (_disposed) throw new ObjectDisposedException(nameof(OpenccJieba));
@@ -255,12 +255,12 @@ namespace OpenccJiebaLib
         /// Returns <see cref="Array.Empty{String}"/> if the input is empty
         /// or if the native tokenizer returns no result.
         /// </returns>
-        /// <exception cref="ObjectDisposedException">If the instance has been disposed.</exception>
         /// <remarks>
         /// This method uses the native Jieba tokenizer via OpenCC-Jieba.
         /// A temporary native instance is created and released for each call.
         /// The returned tokens preserve the original text order.
         /// </remarks>
+        /// <exception cref="ObjectDisposedException">If the instance has been disposed.</exception>
         public string[] JiebaCut(string input, bool hmm)
         {
             if (_disposed) throw new ObjectDisposedException(nameof(OpenccJieba));
@@ -347,14 +347,14 @@ namespace OpenccJiebaLib
         /// Returns <see cref="Array.Empty{String}"/> if the input is empty
         /// or if the native extractor returns no result.
         /// </returns>
-        /// <exception cref="ObjectDisposedException">If the instance has been disposed.</exception>
         /// <remarks>
         /// TextRank is a graph-based ranking algorithm that does not rely on
         /// term frequency statistics and is suitable for short or well-structured texts.
-        /// 
-        /// This method performs a one-shot extraction:
-        /// a native OpenCC-Jieba instance is created, used, and released for each call.
+        ///
+        /// This method uses the native OpenCC-Jieba instance owned by this object.
         /// </remarks>
+        /// <exception cref="ObjectDisposedException">If the instance has been disposed.</exception>
+        /// <exception cref="InvalidOperationException">If the native instance is not initialized.</exception>
         public string[] JiebaKeywordExtractTextRank(string input, int topK)
         {
             if (_disposed) throw new ObjectDisposedException(nameof(OpenccJieba));
@@ -403,17 +403,17 @@ namespace OpenccJiebaLib
         /// Returns <see cref="Array.Empty{String}"/> if the input is empty
         /// or if the native extractor returns no result.
         /// </returns>
-        /// <exception cref="ObjectDisposedException">If the instance has been disposed.</exception>
         /// <remarks>
         /// TF-IDF (Term Frequency–Inverse Document Frequency) ranks keywords
         /// based on term frequency and inverse document frequency statistics.
-        /// 
+        ///
         /// Compared to TextRank, TF-IDF tends to favor frequently occurring terms
         /// and is well-suited for longer or content-heavy texts.
-        /// 
-        /// This method performs a one-shot extraction:
-        /// a native OpenCC-Jieba instance is created, used, and released for each call.
+        ///
+        /// This method uses the native OpenCC-Jieba instance owned by this object.
         /// </remarks>
+        /// <exception cref="ObjectDisposedException">If the instance has been disposed.</exception>
+        /// <exception cref="InvalidOperationException">If the native instance is not initialized.</exception>
         public string[] JiebaKeywordExtractTfidf(string input, int topK)
         {
             if (_disposed) throw new ObjectDisposedException(nameof(OpenccJieba));
@@ -479,17 +479,11 @@ namespace OpenccJiebaLib
         /// This method performs a one-shot extraction:
         /// a native OpenCC-Jieba instance is created, used, and released for each call.
         /// </remarks>
-        /// <exception cref="ObjectDisposedException">
-        /// If the instance has been disposed.
-        /// </exception>
         /// <exception cref="ArgumentNullException">
         /// Thrown if <paramref name="method"/> is null.
         /// </exception>
         /// <exception cref="ArgumentException">
-        /// Thrown if <paramref name="method"/> is empty.
-        /// </exception>
-        /// <exception cref="InvalidOperationException">
-        /// Thrown if the native instance cannot be created or extraction fails.
+        /// Thrown if <paramref name="method"/> is empty or not a supported algorithm.
         /// </exception>
         public (string[] keywords, double[] weights) JiebaExtractKeywordsWeights(string input, int topK, string method)
         {
@@ -499,11 +493,16 @@ namespace OpenccJiebaLib
             if (string.IsNullOrEmpty(input) || topK <= 0)
                 return (Array.Empty<string>(), Array.Empty<double>());
 
-            if (string.IsNullOrEmpty(method))
+            if (method == null)
+                throw new ArgumentNullException(nameof(method));
+            if (method.Length == 0)
                 throw new ArgumentException("Method must be non-empty.", nameof(method));
 
+            if (!JiebaKeywordAlgorithmExtensions.TryParse(method, out var algorithm))
+                throw new ArgumentException("Invalid keyword algorithm: " + method, nameof(method));
+
             var inputBytes = StringToUtf8Bytes(input);
-            var methodBytes = StringToUtf8Bytes(method);
+            var methodBytes = StringToUtf8Bytes(algorithm.ToNativeMethod());
 
             var keywordsPtr = IntPtr.Zero;
             var weightsPtr = IntPtr.Zero;
@@ -561,6 +560,47 @@ namespace OpenccJiebaLib
                     );
                 }
             }
+        }
+
+        /// <summary>
+        /// Extracts keywords and their corresponding weights using the specified Jieba keyword algorithm.
+        /// </summary>
+        /// <param name="input">
+        /// Input text from which keywords will be extracted.
+        /// </param>
+        /// <param name="topK">
+        /// Maximum number of keywords to return.
+        /// If the value is less than or equal to zero, no keywords are returned.
+        /// </param>
+        /// <param name="algorithm">
+        /// Keyword extraction algorithm to use.
+        /// </param>
+        /// <returns>
+        /// A tuple containing:
+        /// <list type="bullet">
+        ///   <item><description><c>keywords</c>: extracted keywords ordered by relevance (highest first)</description></item>
+        ///   <item><description><c>weights</c>: keyword weights aligned by index with <c>keywords</c></description></item>
+        /// </list>
+        /// Returns empty arrays if <paramref name="input"/> is empty or <paramref name="topK"/> is not positive.
+        /// </returns>
+        /// <remarks>
+        /// This overload provides a strongly typed alternative to the string-based API.
+        /// The specified <paramref name="algorithm"/> is mapped directly to its canonical
+        /// native representation without parsing.
+        /// </remarks>
+        /// <exception cref="ObjectDisposedException">
+        /// Thrown if the instance has been disposed.
+        /// </exception>
+        /// <exception cref="InvalidOperationException">
+        /// Thrown if the native instance is not initialized.
+        /// </exception>
+        public (string[] keywords, double[] weights) JiebaExtractKeywordsWeights(
+            string input,
+            int topK,
+            JiebaKeywordAlgorithm algorithm)
+        {
+            // Canonical mapping, no parsing needed.
+            return JiebaExtractKeywordsWeights(input, topK, algorithm.ToNativeMethod());
         }
 
         #region Helper Methods

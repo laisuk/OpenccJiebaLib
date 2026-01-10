@@ -6,6 +6,7 @@ namespace OpenccJiebaLibTests;
 public sealed class OpenccJiebaTests
 {
     private readonly OpenccJieba _openccJieba = new();
+
     [TestMethod]
     public void Convert_Test()
     {
@@ -61,7 +62,7 @@ public sealed class OpenccJiebaTests
         var expectedSegments = new[] { "我", "来到", "北京", "清华大学" };
         CollectionAssert.AreEqual(expectedSegments, result, "The segmented words do not match the expected output.");
     }
-    
+
     [TestMethod]
     public void JiebaCutAndJoin_ShouldReturnJoinedSegments()
     {
@@ -71,7 +72,7 @@ public sealed class OpenccJiebaTests
         const string delimiter = "|";
 
         // Act
-        string result = _openccJieba.JiebaCutAndJoin(input, hmm, delimiter);
+        var result = _openccJieba.JiebaCutAndJoin(input, hmm, delimiter);
 
         // Assert
         Assert.IsNotNull(result, "JiebaCutAndJoin returned null.");
@@ -79,12 +80,12 @@ public sealed class OpenccJiebaTests
 
         // Check if the output is joined correctly
         var expectedSegments = new[] { "我", "来到", "北京", "清华大学" };
-        string expectedJoined = string.Join(delimiter, expectedSegments);
+        var expectedJoined = string.Join(delimiter, expectedSegments);
 
         Assert.AreEqual(expectedJoined, result, "The joined segmented string does not match the expected output.");
     }
 
-    
+
     [TestMethod]
     public void JiebaKeywordExtractTextRank_Test()
     {
@@ -98,7 +99,7 @@ public sealed class OpenccJiebaTests
         {
             Console.WriteLine(keyword);
         }
-        
+
 
         // Assert
         Assert.IsNotNull(result, "JiebaKeyword returned null.");
@@ -108,14 +109,14 @@ public sealed class OpenccJiebaTests
         var expectedSegments = new[] { "清华大学", "北京", "来到", "我" };
         CollectionAssert.AreEqual(expectedSegments, result, "The segmented words do not match the expected output.");
     }
-    
+
     [TestMethod]
     public void TestJiebaExtractKeywordsWeights()
     {
         // Arrange
         const string input = "该剧讲述三位男女在平安夜这一天各自的故事。平安夜的0点，横滨山下码头发生枪杀事件。";
         const int topK = 5; // Number of top keywords to extract
-        const string method = "textrank";
+        const JiebaKeywordAlgorithm method = JiebaKeywordAlgorithm.TextRank;
 
         // Act
         var (keywords, weights) = _openccJieba.JiebaExtractKeywordsWeights(input, topK, method);
@@ -125,6 +126,9 @@ public sealed class OpenccJiebaTests
         Assert.IsNotNull(weights, "Weights should not be null.");
         Assert.HasCount(topK, keywords, "The number of extracted keywords does not match the expected count.");
         Assert.HasCount(topK, weights, "The number of extracted weights does not match the expected count.");
+        Assert.IsGreaterThanOrEqualTo(weights[1], weights[0]);
+        Assert.IsGreaterThanOrEqualTo(weights[2], weights[1]);
+
 
         // Additional assertions can be made on the keywords and weights if expected values are known
         // For example:
@@ -132,6 +136,83 @@ public sealed class OpenccJiebaTests
         for (var i = 0; i < keywords.Length; i++)
         {
             Console.WriteLine($"Keyword: {keywords[i]}, Weight: {weights[i]}");
+        }
+    }
+
+    [TestMethod]
+    public void JiebaKeywordAlgorithm_TryParse_NormalizesCommonVariants()
+    {
+        // Arrange
+        var inputs = new[]
+        {
+            "tfidf", "TFIDF", "TfIdF", "tf-idf", "TF-IDF", "tf_idf", "  tfidf  ",
+            "textrank", "TextRank", "TEXTRANK", "text-rank", "TEXT-RANK", "text_rank", "  textrank  "
+        };
+
+        // Act + Assert
+        foreach (var s in inputs)
+        {
+            Assert.IsTrue(
+                JiebaKeywordAlgorithmExtensions.TryParse(s, out var algo),
+                "TryParse should accept: " + s
+            );
+
+            var native = algo.ToNativeMethod();
+            Assert.IsTrue(
+                native == "tfidf" || native == "textrank",
+                "Native method should be canonical for: " + s + " => " + native
+            );
+
+            // Ensure mapping is stable and canonical
+            if (s.IndexOf("tf", StringComparison.OrdinalIgnoreCase) >= 0)
+                Assert.AreEqual("tfidf", native, "Expected TF-IDF canonical method for: " + s);
+
+            if (s.IndexOf("rank", StringComparison.OrdinalIgnoreCase) >= 0)
+                Assert.AreEqual("textrank", native, "Expected TextRank canonical method for: " + s);
+        }
+    }
+
+    [TestMethod]
+    public void JiebaExtractKeywordsWeights_StringMethod_NormalizesCaseAndAliases()
+    {
+        // Arrange
+        const string input = "该剧讲述三位男女在平安夜这一天各自的故事。平安夜的0点，横滨山下码头发生枪杀事件。";
+        const int topK = 5;
+
+        // A few representative variants (don’t need all)
+        var methods = new[] { "TextRank", "text_rank", "TEXT-RANK", "tf-idf", "TFIDF" };
+
+        foreach (var method in methods)
+        {
+            // Act
+            var (keywords, weights) = _openccJieba.JiebaExtractKeywordsWeights(input, topK, method);
+
+            // Assert
+            Assert.IsNotNull(keywords, "Keywords should not be null for method: " + method);
+            Assert.IsNotNull(weights, "Weights should not be null for method: " + method);
+            Assert.HasCount(topK, keywords, "Keyword count mismatch for method: " + method);
+            Assert.HasCount(topK, weights, "Weight count mismatch for method: " + method);
+        }
+    }
+
+    [TestMethod]
+    public void JiebaExtractKeywordsWeights_InvalidMethod_ThrowsArgumentException()
+    {
+        // Arrange
+        const string input = "测试文本";
+        const int topK = 5;
+        const string invalid = "bm25";
+
+        try
+        {
+            // Act
+            _openccJieba.JiebaExtractKeywordsWeights(input, topK, invalid);
+            Assert.Fail("Expected ArgumentException was not thrown.");
+        }
+        catch (ArgumentException ex)
+        {
+            // Assert
+            Assert.Contains("Invalid keyword algorithm", ex.Message);
         }
     }
 }
