@@ -211,12 +211,11 @@ namespace OpenccJiebaLib
             if (string.IsNullOrEmpty(input)) return string.Empty;
 
             // Normalize/validate configId with a safe default.
-            // Keep single-owner policy: default selection is centralized here.
-            if (!OpenccConfigExtensions.TryGetConfigName(configId, out var config))
-                config = OpenccConfigExtensions.DefaultConfig().ToCanonicalName(); // "s2t"
+            if (!OpenccConfigExtensions.TryGetConfigName(configId, out _))
+                configId = OpenccConfigExtensions.DefaultConfig();
 
-            // Reuse the existing, fully-optimized implementation (pooling, native free, cache lookup).
-            return Convert(input, config, punctuation);
+            // Forward using canonical name; avoids parsing in string overload.
+            return Convert(input, configId.ToCanonicalName(), punctuation);
         }
 
         /// <summary>
