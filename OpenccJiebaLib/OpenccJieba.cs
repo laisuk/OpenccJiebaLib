@@ -18,34 +18,29 @@ namespace OpenccJiebaLib
         private IntPtr _openccInstance; // Native instance pointer
         private bool _disposed; // Tracks whether Dispose has been called
 
-        // Pre-encoded config bytes for common configurations
+        // Pre-encoded config bytes for common configurations (canonical lowercase -> UTF-8 nul-terminated)
         private static readonly Dictionary<string, byte[]> EncodedConfigCache =
-            new Dictionary<string, byte[]>(StringComparer.Ordinal);
+            new Dictionary<string, byte[]>(capacity: 16, comparer: StringComparer.Ordinal);
 
-        // Supported configuration names for OpenCC conversion
-        private static readonly HashSet<string> ConfigList = new HashSet<string>(
-            new[]
-            {
-                "s2t", "t2s", "s2tw", "tw2s", "s2twp", "tw2sp", "s2hk", "hk2s",
-                "t2tw", "t2twp", "t2hk", "tw2t", "tw2tp", "hk2t", "t2jp", "jp2t"
-            },
-            StringComparer.Ordinal);
-
-
-        // Static constructor to pre-encode common config strings for efficient native interop
         static OpenccJieba()
         {
-            foreach (var config in ConfigList)
+            // Single source of truth: OpenccConfig enum values.
+            // Populate cache with canonical config names.
+            foreach (OpenccConfig id in Enum.GetValues(typeof(OpenccConfig)))
             {
-                if (EncodedConfigCache.ContainsKey(config))
-                    continue; // Defensive: avoid ArgumentException if code is refactored later
+                if (!OpenccConfigExtensions.TryGetConfigName(id, out var name))
+                    continue;
 
-                var byteCount = Encoding.UTF8.GetByteCount(config);
+                // name is canonical lowercase (e.g. "s2t")
+                if (EncodedConfigCache.ContainsKey(name))
+                    continue;
+
+                var byteCount = Encoding.UTF8.GetByteCount(name);
                 var encodedBytes = new byte[byteCount + 1];
-                Encoding.UTF8.GetBytes(config, 0, config.Length, encodedBytes, 0);
+                Encoding.UTF8.GetBytes(name, 0, name.Length, encodedBytes, 0);
                 encodedBytes[byteCount] = 0x00;
 
-                EncodedConfigCache[config] = encodedBytes;
+                EncodedConfigCache[name] = encodedBytes;
             }
         }
 
@@ -143,8 +138,11 @@ namespace OpenccJiebaLib
             if (_disposed) throw new ObjectDisposedException(nameof(OpenccJieba));
             if (string.IsNullOrEmpty(input)) return string.Empty;
 
-            // Normalize/validate config with a safe default.
-            config = ConfigList.Contains(config) ? config : "s2t";
+            // Normalize/validate config with a safe default (case-insensitive).
+            if (!OpenccConfigExtensions.TryParseConfig(config, out var configId))
+                configId = OpenccConfig.S2T;
+
+            config = configId.ToCanonicalName();
 
             if (_openccInstance == IntPtr.Zero)
                 throw new InvalidOperationException("Native instance is not initialized or has been disposed.");
@@ -175,6 +173,50 @@ namespace OpenccJiebaLib
                 if (output != IntPtr.Zero)
                     OpenccJiebaNative.opencc_jieba_free_string(output);
             }
+        }
+
+        /// <summary>
+        /// Converts Chinese text using the specified OpenCC configuration enum,
+        /// optionally including punctuation conversion.
+        /// </summary>
+        /// <param name="input">The input string to convert.</param>
+        /// <param name="configId">
+        /// The OpenCC configuration identifier (managed enum). If invalid, the method falls back to
+        /// <see cref="OpenccConfig.S2T"/>.
+        /// </param>
+        /// <param name="punctuation">Whether to convert punctuation as well.</param>
+        /// <returns>The converted string; returns an empty string if <paramref name="input"/> is null or empty.</returns>
+        /// <exception cref="ObjectDisposedException">Thrown if this instance has been disposed.</exception>
+        /// <exception cref="InvalidOperationException">Thrown if the native instance is not initialized or has been disposed.</exception>
+        /// <exception cref="ArgumentException">
+        /// Thrown if the (normalized) configuration cannot be resolved to a cached byte sequence.
+        /// </exception>
+        /// <remarks>
+        /// This overload is a convenience wrapper that maps <see cref="OpenccConfig"/> to its canonical
+        /// OpenCC config name (e.g. "s2t", "t2s") and forwards to <see cref="Convert(string,string,bool)"/>.
+        /// </remarks>
+        /// <example>
+        /// <code>
+        /// using (var converter = new OpenccJieba())
+        /// {
+        ///     string original = "汉字简繁转换";
+        ///     string converted = converter.Convert(original, OpenccConfig.S2T, punctuation: true);
+        ///     Console.WriteLine(converted); // Output: 漢字簡繁轉換
+        /// }
+        /// </code>
+        /// </example>
+        public string Convert(string input, OpenccConfig configId, bool punctuation = false)
+        {
+            if (_disposed) throw new ObjectDisposedException(nameof(OpenccJieba));
+            if (string.IsNullOrEmpty(input)) return string.Empty;
+
+            // Normalize/validate configId with a safe default.
+            // Keep single-owner policy: default selection is centralized here.
+            if (!OpenccConfigExtensions.TryGetConfigName(configId, out var config))
+                config = OpenccConfigExtensions.DefaultConfig().ToCanonicalName(); // "s2t"
+
+            // Reuse the existing, fully-optimized implementation (pooling, native free, cache lookup).
+            return Convert(input, config, punctuation);
         }
 
         /// <summary>

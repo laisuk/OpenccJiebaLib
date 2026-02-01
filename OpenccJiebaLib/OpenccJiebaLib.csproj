@@ -19,12 +19,13 @@
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <!-- (Optional) don’t warn about undocumented public members -->
         <NoWarn>$(NoWarn);1591</NoWarn>
-        <AssemblyVersion>1.1.2.0</AssemblyVersion>
-        <FileVersion>1.1.2.0</FileVersion>
-        <Version>1.1.2</Version>
-        <PackageReleaseNotes>v1.1.2
+        <AssemblyVersion>1.2.0.0</AssemblyVersion>
+        <FileVersion>1.2.0.0</FileVersion>
+        <Version>1.2.0</Version>
+        <PackageReleaseNotes>v1.2.0
             - Extract native codes to its own class
             - Fixed ABI mismatch in C# P/Invoke by using `UnmanagedType.I1` for Rust bool parameters
+            - Added OpenccConfig Enum for conversion configuration.
         </PackageReleaseNotes>
     </PropertyGroup>
 

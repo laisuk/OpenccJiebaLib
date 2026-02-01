@@ -6,11 +6,16 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
-## [1.1.2] - 2025-11-05
+## [1.2.0] - 2026-02-02
+
+### Added
+
+- Added `OpenccConfig` Enum for conversion configuration.
 
 ### Changed
 
 - Extract native codes to its own class
+- Update `opencc-jieba-rs` C API to v0.7.3
 
 ### Fixed
 

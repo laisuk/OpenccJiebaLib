@@ -78,11 +78,11 @@ using (var openccJieba = new OpenccJieba())
 ### Error Handling
 
 If initialization fails or a native error occurs, an `InvalidOperationException` is thrown.  
-Use `OpenccJieba.LastError()` (if available) to get the last native error message.
 
 ## API Overview
 
 - `Convert(string input, string config, bool punctuation = false)`
+- `Convert(string input, OpenccConfig configId, bool punctuation = false)`
 - `JiebaCut(string input, bool hmm)`
 - `JiebaCutAndJoin(string input, bool hmm, string delimiter)`
 - `JiebaKeywordExtractTfidf(string input, int topK)`

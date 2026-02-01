@@ -17,7 +17,16 @@ public sealed class OpenccJiebaTests
     [TestMethod]
     public void Convert_s2twp_Test()
     {
-        var result = _openccJieba.Convert("这是一项意大利商务项目", "s2twp");
+        const string config = "S2Twp";
+        Assert.IsTrue(OpenccConfigExtensions.IsValidConfig(config));
+        var result = _openccJieba.Convert("这是一项意大利商务项目", config);
+        Assert.AreEqual("這是一項義大利商務專案", result);
+    }
+
+    [TestMethod]
+    public void Convert_configId_s2twp_Test()
+    {
+        var result = _openccJieba.Convert("这是一项意大利商务项目", OpenccConfig.S2TWP);
         Assert.AreEqual("這是一項義大利商務專案", result);
     }
 
