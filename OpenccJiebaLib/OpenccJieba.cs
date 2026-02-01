@@ -152,8 +152,13 @@ namespace OpenccJiebaLib
 
             try
             {
+                // Defensive fallback: should never fail after normalization,
+                // but fall back to default config bytes instead of throwing.
                 if (!EncodedConfigCache.TryGetValue(config, out var configBytes))
-                    throw new ArgumentException("Unknown OpenCC configuration: " + config, nameof(config));
+                {
+                    var defaultConfig = OpenccConfigExtensions.DefaultConfig().ToCanonicalName();
+                    configBytes = EncodedConfigCache[defaultConfig];
+                }
 
                 var byteCount = Encoding.UTF8.GetByteCount(input);
                 rented = ArrayPool<byte>.Shared.Rent(byteCount + 1);
