@@ -10,16 +10,23 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
-- Added `OpenccConfig` Enum for conversion configuration.
+- Added `OpenccConfig` enum for strongly typed OpenCC conversion configuration.
+- Added `Convert(string, OpenccConfig, bool)` overload for type-safe conversion calls.
 
 ### Changed
 
-- Extract native codes to its own class
-- Update `opencc-jieba-rs` C API to v0.7.3
+- Refactored native P/Invoke bindings into a dedicated native interop class.
+- Simplified conversion API by removing internal config state (`SetConfig` / `GetConfig`);
+  configuration is now provided per `Convert()` call.
+- Improved UTF-8 interop by centralizing null-terminated encoding helpers (`*Utf8Z`)
+  and reusing pooled buffers where appropriate.
+- Updated `opencc-jieba-rs` C API to v0.7.3.
 
 ### Fixed
 
-- Fixed ABI mismatch in C# P/Invoke by using `UnmanagedType.I1` for Rust bool parameters (`OpenccFmmsegLib` / `OpenccJiebaLib`).
+- Fixed ABI mismatch in C# P/Invoke by using `UnmanagedType.I1` for Rust `bool` parameters
+  (`OpenccFmmsegLib` / `OpenccJiebaLib`).
+- Improved robustness of native memory cleanup in keyword extraction APIs.
 
 ---
 

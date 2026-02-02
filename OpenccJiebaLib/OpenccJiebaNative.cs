@@ -156,7 +156,7 @@ namespace OpenccJiebaLib
         /// </summary>
         /// <param name="instance">Pointer to the native instance.</param>
         /// <param name="input">UTF-8 encoded null-terminated input text.</param>
-        /// <param name="topK">Maximum number of keywords to extract (as IntPtr).</param>
+        /// <param name="topK">Maximum number of keywords to extract (as UIntPtr).</param>
         /// <param name="method">UTF-8 encoded null-terminated string ("tfidf" or "textrank").</param>
         /// <param name="outLen">Output pointer to the number of keywords extracted.</param>
         /// <param name="outKeywords">Output pointer to an array of UTF-8 keyword pointers.</param>

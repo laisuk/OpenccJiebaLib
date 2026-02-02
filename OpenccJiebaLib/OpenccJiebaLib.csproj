@@ -3,39 +3,58 @@
     <PropertyGroup>
         <TargetFramework>netstandard2.0</TargetFramework>
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+
+        <IsPackable>true</IsPackable>
+
+        <!-- NuGet metadata -->
+        <PackageId>OpenccJiebaLib</PackageId>
         <Title>OpenccJieba C API Interop Library</Title>
         <Authors>laisuk</Authors>
         <Description>opencc-jieba-rs Rust based C API .NET interop library for Chinese text conversion and segmentation between Traditional and Simplified Chinese</Description>
         <PackageTags>opencc;chinese;jieba;traditional;simplified;capi</PackageTags>
         <Copyright>laisuk</Copyright>
+
         <PackageProjectUrl>https://github.com/laisuk/OpenccJiebaLib</PackageProjectUrl>
         <RepositoryUrl>https://github.com/laisuk/OpenccJiebaLib</RepositoryUrl>
         <RepositoryType>git</RepositoryType>
+
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
+
+        <!-- README packaged to root, so reference just "README.md" -->
         <PackageReadmeFile>README.md</PackageReadmeFile>
+
+        <!-- Symbols -->
         <IncludeSymbols>true</IncludeSymbols>
         <SymbolPackageFormat>snupkg</SymbolPackageFormat>
-        <!-- Generate the XML doc file alongside the DLL -->
+        <!-- <IncludeSource>true</IncludeSource> -->
+
+        <!-- XML docs -->
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
         <!-- (Optional) don’t warn about undocumented public members -->
         <NoWarn>$(NoWarn);1591</NoWarn>
+
+        <!-- Versioning -->
         <AssemblyVersion>1.2.0.0</AssemblyVersion>
         <FileVersion>1.2.0.0</FileVersion>
         <Version>1.2.0</Version>
+
         <PackageReleaseNotes>v1.2.0
-            - Extract native codes to its own class
-            - Fixed ABI mismatch in C# P/Invoke by using `UnmanagedType.I1` for Rust bool parameters
-            - Added OpenccConfig Enum for conversion configuration.
+            - Extracted native interop codes into a dedicated native class
+            - Fixed ABI mismatch in C# P/Invoke by using UnmanagedType.I1 for Rust bool parameters
+            - Added OpenccConfig enum for conversion configuration
         </PackageReleaseNotes>
+
+        <!-- Optional: helpful for deterministic CI builds -->
+        <!-- <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild> -->
     </PropertyGroup>
 
-    <!-- Include README and LICENSE at package root -->
+    <!-- Pack README and LICENSE at package root -->
     <ItemGroup>
         <None Include="..\README.md" Pack="true" PackagePath="\"/>
         <None Include="..\LICENSE" Pack="true" PackagePath="\"/>
     </ItemGroup>
 
-    <!-- Pack native assets to the same paths; do NOT copy on build -->
+    <!-- Pack native assets to runtimes/ paths -->
     <ItemGroup>
         <None Include="runtimes\win-x64\native\opencc_jieba_capi.dll"
               Pack="true"
@@ -46,6 +65,13 @@
         <None Include="runtimes\osx-arm64\native\libopencc_jieba_capi.dylib"
               Pack="true"
               PackagePath="runtimes/osx-arm64/native/"/>
+
+        <!-- If any Intel mac builds, include this too -->
+        <!--
+        <None Include="runtimes\osx-x64\native\libopencc_jieba_capi.dylib"
+              Pack="true"
+              PackagePath="runtimes/osx-x64/native/" />
+        -->
     </ItemGroup>
 
     <ItemGroup>

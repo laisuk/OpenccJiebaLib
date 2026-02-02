@@ -120,6 +120,31 @@ public sealed class OpenccJiebaTests
     }
 
     [TestMethod]
+    public void JiebaKeywordExtractTfidf_Test()
+    {
+        // Arrange
+        const string input = "我来到北京清华大学"; // Example Chinese input
+        const int topK = 5;
+
+        // Act
+        string[] result = _openccJieba.JiebaKeywordExtractTfidf(input, topK);
+        foreach (var keyword in result)
+        {
+            Console.WriteLine(keyword);
+        }
+
+
+        // Assert
+        Assert.IsNotNull(result, "JiebaKeyword returned null.");
+        Assert.AreNotEqual(0, result.Length, "JiebaKeyword returned an empty array.");
+
+        // Check for expected segmented results (the actual results may vary based on the segmentation algorithm and dictionary)
+        var expectedSegments = new[] { "清华大学", "来到", "北京" };
+        CollectionAssert.AreEqual(expectedSegments, result, "The segmented words do not match the expected output.");
+    }
+
+
+    [TestMethod]
     public void TestJiebaExtractKeywordsWeights()
     {
         // Arrange

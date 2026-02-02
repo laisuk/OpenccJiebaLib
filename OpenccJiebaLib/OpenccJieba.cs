@@ -22,6 +22,18 @@ namespace OpenccJiebaLib
         private static readonly Dictionary<string, byte[]> EncodedConfigCache =
             new Dictionary<string, byte[]>(capacity: 16, comparer: StringComparer.Ordinal);
 
+        // Keyword algorithm names (UTF-8, null-terminated) for native interop.
+        private static readonly byte[] TextrankMethodBytes =
+        {
+            (byte)'t', (byte)'e', (byte)'x', (byte)'t',
+            (byte)'r', (byte)'a', (byte)'n', (byte)'k', 0
+        };
+
+        private static readonly byte[] TfidfMethodBytes =
+        {
+            (byte)'t', (byte)'f', (byte)'i', (byte)'d', (byte)'f', 0
+        };
+
         static OpenccJieba()
         {
             // Single source of truth: OpenccConfig enum values.
@@ -147,7 +159,7 @@ namespace OpenccJiebaLib
             if (_openccInstance == IntPtr.Zero)
                 throw new InvalidOperationException("Native instance is not initialized or has been disposed.");
 
-            byte[] rented = null;
+            byte[] inputBytes = null;
             var output = IntPtr.Zero;
 
             try
@@ -160,20 +172,15 @@ namespace OpenccJiebaLib
                     configBytes = EncodedConfigCache[defaultConfig];
                 }
 
-                var byteCount = Encoding.UTF8.GetByteCount(input);
-                rented = ArrayPool<byte>.Shared.Rent(byteCount + 1);
+                // Pooled UTF-8 + NUL input buffer
+                RentUtf8Z(input, out inputBytes);
 
-                // Encode to UTF-8 and null-terminate for the native API.
-                Encoding.UTF8.GetBytes(input, 0, input.Length, rented, 0);
-                rented[byteCount] = 0x00;
-
-                output = OpenccJiebaNative.opencc_jieba_convert(_openccInstance, rented, configBytes, punctuation);
+                output = OpenccJiebaNative.opencc_jieba_convert(_openccInstance, inputBytes, configBytes, punctuation);
                 return Utf8BytesToString(output);
             }
             finally
             {
-                if (rented != null)
-                    ArrayPool<byte>.Shared.Return(rented);
+                ReturnRented(inputBytes);
 
                 if (output != IntPtr.Zero)
                     OpenccJiebaNative.opencc_jieba_free_string(output);
@@ -266,24 +273,16 @@ namespace OpenccJiebaLib
                 throw new InvalidOperationException("Native instance is not initialized or has been disposed.");
 
             byte[] inputBytes = null;
-            int code;
 
             try
             {
-                var inputByteCount = Encoding.UTF8.GetByteCount(input);
-                inputBytes = ArrayPool<byte>.Shared.Rent(inputByteCount + 1);
-                Encoding.UTF8.GetBytes(input, 0, input.Length, inputBytes, 0);
-                inputBytes[inputByteCount] = 0x00; // Null-terminate
-
-                code = OpenccJiebaNative.opencc_jieba_zho_check(_openccInstance, inputBytes);
+                RentUtf8Z(input, out inputBytes);
+                return OpenccJiebaNative.opencc_jieba_zho_check(_openccInstance, inputBytes);
             }
             finally
             {
-                if (inputBytes != null)
-                    ArrayPool<byte>.Shared.Return(inputBytes);
+                ReturnRented(inputBytes);
             }
-
-            return code;
         }
 
         /// <summary>
@@ -317,19 +316,22 @@ namespace OpenccJiebaLib
             if (_openccInstance == IntPtr.Zero)
                 throw new InvalidOperationException("Native instance is not initialized or has been disposed.");
 
-            var inputBytes = StringToUtf8Bytes(input);
-
-            var result = OpenccJiebaNative.opencc_jieba_cut(_openccInstance, inputBytes, hmm);
-            if (result == IntPtr.Zero)
-                return Array.Empty<string>();
+            byte[] inputBytes = null;
+            var result = IntPtr.Zero;
 
             try
             {
-                return MarshalNullTerminatedStringArray(result);
+                RentUtf8Z(input, out inputBytes);
+
+                result = OpenccJiebaNative.opencc_jieba_cut(_openccInstance, inputBytes, hmm);
+                return result == IntPtr.Zero ? Array.Empty<string>() : MarshalNullTerminatedStringArray(result);
             }
             finally
             {
-                OpenccJiebaNative.opencc_jieba_free_string_array(result);
+                ReturnRented(inputBytes);
+
+                if (result != IntPtr.Zero)
+                    OpenccJiebaNative.opencc_jieba_free_string_array(result);
             }
         }
 
@@ -355,26 +357,28 @@ namespace OpenccJiebaLib
             if (delimiter == null)
                 delimiter = string.Empty;
 
-            var inputBytes = StringToUtf8Bytes(input);
-            var delimiterBytes = StringToUtf8Bytes(delimiter);
-
-            var resultPtr = OpenccJiebaNative.opencc_jieba_cut_and_join(
-                _openccInstance,
-                inputBytes,
-                hmm,
-                delimiterBytes
-            );
-
-            if (resultPtr == IntPtr.Zero)
-                return string.Empty;
+            byte[] inputBytes = null;
+            var delimiterBytes = StringToUtf8BytesZ(delimiter);
+            var resultPtr = IntPtr.Zero;
 
             try
             {
+                RentUtf8Z(input, out inputBytes);
+
+                resultPtr = OpenccJiebaNative.opencc_jieba_cut_and_join(
+                    _openccInstance, inputBytes, hmm, delimiterBytes);
+
+                if (resultPtr == IntPtr.Zero)
+                    return string.Empty;
+
                 return Utf8BytesToString(resultPtr) ?? string.Empty;
             }
             finally
             {
-                OpenccJiebaNative.opencc_jieba_free_string(resultPtr);
+                ReturnRented(inputBytes);
+
+                if (resultPtr != IntPtr.Zero)
+                    OpenccJiebaNative.opencc_jieba_free_string(resultPtr);
             }
         }
 
@@ -411,26 +415,24 @@ namespace OpenccJiebaLib
             if (_openccInstance == IntPtr.Zero)
                 throw new InvalidOperationException("Native instance is not initialized or has been disposed.");
 
-            var inputBytes = StringToUtf8Bytes(input);
-            var methodBytes = StringToUtf8Bytes("textrank");
-
-            var result = OpenccJiebaNative.opencc_jieba_keywords(
-                _openccInstance,
-                inputBytes,
-                (UIntPtr)topK,
-                methodBytes
-            );
-
-            if (result == IntPtr.Zero)
-                return Array.Empty<string>();
+            byte[] inputBytes = null;
+            var result = IntPtr.Zero;
 
             try
             {
-                return MarshalNullTerminatedStringArray(result);
+                RentUtf8Z(input, out inputBytes);
+
+                result = OpenccJiebaNative.opencc_jieba_keywords(
+                    _openccInstance, inputBytes, (UIntPtr)topK, TextrankMethodBytes);
+
+                return result == IntPtr.Zero ? Array.Empty<string>() : MarshalNullTerminatedStringArray(result);
             }
             finally
             {
-                OpenccJiebaNative.opencc_jieba_free_string_array(result);
+                ReturnRented(inputBytes);
+
+                if (result != IntPtr.Zero)
+                    OpenccJiebaNative.opencc_jieba_free_string_array(result);
             }
         }
 
@@ -470,31 +472,30 @@ namespace OpenccJiebaLib
             if (_openccInstance == IntPtr.Zero)
                 throw new InvalidOperationException("Native instance is not initialized or has been disposed.");
 
-            var inputBytes = StringToUtf8Bytes(input);
-            var methodBytes = StringToUtf8Bytes("tfidf");
-
-            var result = OpenccJiebaNative.opencc_jieba_keywords(
-                _openccInstance,
-                inputBytes,
-                (UIntPtr)topK,
-                methodBytes
-            );
-
-            if (result == IntPtr.Zero)
-                return Array.Empty<string>();
+            byte[] inputBytes = null;
+            var result = IntPtr.Zero;
 
             try
             {
-                return MarshalNullTerminatedStringArray(result);
+                RentUtf8Z(input, out inputBytes);
+
+                result = OpenccJiebaNative.opencc_jieba_keywords(
+                    _openccInstance, inputBytes, (UIntPtr)topK, TfidfMethodBytes);
+
+                return result == IntPtr.Zero ? Array.Empty<string>() : MarshalNullTerminatedStringArray(result);
             }
             finally
             {
-                OpenccJiebaNative.opencc_jieba_free_string_array(result);
+                ReturnRented(inputBytes);
+
+                if (result != IntPtr.Zero)
+                    OpenccJiebaNative.opencc_jieba_free_string_array(result);
             }
         }
 
         /// <summary>
-        /// Extracts keywords and their corresponding weights using the specified Jieba keyword method.
+        /// Extracts top keywords and their corresponding weights from the input text
+        /// using the specified Jieba keyword extraction method.
         /// </summary>
         /// <param name="input">
         /// Input text from which keywords will be extracted.
@@ -504,8 +505,10 @@ namespace OpenccJiebaLib
         /// If the value is less than or equal to zero, no keywords are returned.
         /// </param>
         /// <param name="method">
-        /// Keyword extraction method name.
-        /// Common values include <c>"tfidf"</c> and <c>"textrank"</c>.
+        /// Keyword extraction method name (case-insensitive).
+        /// Common values include <c>"tfidf"</c> and <c>"textrank"</c>
+        /// (aliases such as <c>"tf-idf"</c>, <c>"tf_idf"</c>, <c>"text-rank"</c>, <c>"text_rank"</c>
+        /// are also accepted).
         /// </param>
         /// <returns>
         /// A tuple containing:
@@ -516,20 +519,32 @@ namespace OpenccJiebaLib
         /// Returns empty arrays if <paramref name="input"/> is empty or <paramref name="topK"/> is not positive.
         /// </returns>
         /// <remarks>
-        /// This method calls the native API that returns two unmanaged arrays:
-        /// - an array of UTF-8 keyword string pointers
-        /// - an array of floating-point weights
-        ///
-        /// Both arrays MUST be released using <c>opencc_jieba_free_keywords_and_weights</c>.
-        ///
-        /// This method performs a one-shot extraction:
-        /// a native OpenCC-Jieba instance is created, used, and released for each call.
+        /// <para>
+        /// This method uses the native OpenCC-Jieba instance owned by this object.
+        /// </para>
+        /// <para>
+        /// The native API returns two unmanaged arrays:
+        /// an array of UTF-8 keyword string pointers and an array of <c>double</c> weights.
+        /// Both arrays MUST be released by calling <c>opencc_jieba_free_keywords_and_weights</c>.
+        /// </para>
+        /// <para>
+        /// For efficiency, the input text is encoded to a pooled UTF-8 buffer (null-terminated) for the native call,
+        /// and returned to the shared pool in a <c>finally</c> block.
+        /// The keyword method string is passed as a pre-encoded, null-terminated UTF-8 byte sequence.
+        /// </para>
         /// </remarks>
+        /// <exception cref="ObjectDisposedException">
+        /// Thrown if this instance has been disposed.
+        /// </exception>
         /// <exception cref="ArgumentNullException">
-        /// Thrown if <paramref name="method"/> is null.
+        /// Thrown if <paramref name="method"/> is <c>null</c>.
         /// </exception>
         /// <exception cref="ArgumentException">
-        /// Thrown if <paramref name="method"/> is empty or not a supported algorithm.
+        /// Thrown if <paramref name="method"/> is empty or not a supported algorithm name.
+        /// </exception>
+        /// <exception cref="InvalidOperationException">
+        /// Thrown if the native instance is not initialized or has been disposed,
+        /// or if the native keyword extraction call fails.
         /// </exception>
         public (string[] keywords, double[] weights) JiebaExtractKeywordsWeights(string input, int topK, string method)
         {
@@ -547,8 +562,24 @@ namespace OpenccJiebaLib
             if (!JiebaKeywordAlgorithmExtensions.TryParse(method, out var algorithm))
                 throw new ArgumentException("Invalid keyword algorithm: " + method, nameof(method));
 
-            var inputBytes = StringToUtf8Bytes(input);
-            var methodBytes = StringToUtf8Bytes(algorithm.ToNativeMethod());
+            if (_openccInstance == IntPtr.Zero)
+                throw new InvalidOperationException("Native instance is not initialized or has been disposed.");
+
+            // Resolve method bytes from the parsed algorithm (no allocation, no pooling).
+            byte[] methodBytes;
+            switch (algorithm)
+            {
+                case JiebaKeywordAlgorithm.Tfidf:
+                    methodBytes = TfidfMethodBytes;
+                    break;
+                case JiebaKeywordAlgorithm.TextRank:
+                    methodBytes = TextrankMethodBytes;
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(algorithm), algorithm, "Unknown algorithm.");
+            }
+
+            byte[] inputBytes = null;
 
             var keywordsPtr = IntPtr.Zero;
             var weightsPtr = IntPtr.Zero;
@@ -556,8 +587,8 @@ namespace OpenccJiebaLib
 
             try
             {
-                if (_openccInstance == IntPtr.Zero)
-                    throw new InvalidOperationException("Native instance is not initialized or has been disposed.");
+                // Pooled UTF-8 + NUL input buffer for native API.
+                RentUtf8Z(input, out inputBytes);
 
                 var rc = OpenccJiebaNative.opencc_jieba_keywords_and_weights(
                     _openccInstance,
@@ -597,7 +628,10 @@ namespace OpenccJiebaLib
             }
             finally
             {
-                if (keywordsPtr != IntPtr.Zero && weightsPtr != IntPtr.Zero)
+                ReturnRented(inputBytes);
+
+                // Defensive: free if either pointer is non-zero to avoid edge-case native leaks.
+                if (keywordsPtr != IntPtr.Zero || weightsPtr != IntPtr.Zero)
                 {
                     OpenccJiebaNative.opencc_jieba_free_keywords_and_weights(
                         keywordsPtr,
@@ -652,12 +686,23 @@ namespace OpenccJiebaLib
         #region Helper Methods
 
         /// <summary>
-        /// Converts a C# string to a UTF-8 encoded null-terminated byte array.
+        /// Allocates a UTF-8 encoded, null-terminated (C-string) byte array
+        /// from a managed <see cref="string"/>.
         /// </summary>
-        /// <param name="str">The input string.</param>
-        /// <returns>UTF-8 encoded byte array, null-terminated.</returns>
+        /// <param name="str">
+        /// The input string. If <c>null</c>, a single null byte (<c>0x00</c>) is returned.
+        /// </param>
+        /// <returns>
+        /// A newly allocated UTF-8 byte array terminated with a null byte,
+        /// suitable for passing to native C APIs.
+        /// </returns>
+        /// <remarks>
+        /// This method always allocates a new managed array.
+        /// For large or frequently used strings, prefer pooled helpers
+        /// such as <c>RentUtf8Z</c>.
+        /// </remarks>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static byte[] StringToUtf8Bytes(string str)
+        private static byte[] StringToUtf8BytesZ(string str)
         {
             if (str == null)
                 return new byte[] { 0 }; // Just a single null if input is null
@@ -667,6 +712,39 @@ namespace OpenccJiebaLib
             Encoding.UTF8.GetBytes(str, 0, str.Length, buffer, 0);
             buffer[byteCount] = 0x00; // Explicit null termination
             return buffer;
+        }
+
+        /// <summary>
+        /// Rents a UTF-8 buffer from <see cref="ArrayPool{T}"/>, encodes the string,
+        /// and appends a null terminator (C-string).
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void RentUtf8Z(string s, out byte[] rented)
+        {
+            if (s == null) s = string.Empty;
+
+            var byteCount = Encoding.UTF8.GetByteCount(s);
+            rented = ArrayPool<byte>.Shared.Rent(byteCount + 1);
+
+            Encoding.UTF8.GetBytes(s, 0, s.Length, rented, 0);
+            rented[byteCount] = 0x00;
+        }
+
+        /// <summary>
+        /// Returns a previously rented buffer to the shared <see cref="ArrayPool{T}"/>.
+        /// </summary>
+        /// <param name="rented">
+        /// The buffer to return. If <c>null</c>, the call is ignored.
+        /// </param>
+        /// <remarks>
+        /// This helper is intended for use in <c>finally</c> blocks to ensure
+        /// pooled buffers are always returned, even when exceptions occur.
+        /// </remarks>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void ReturnRented(byte[] rented)
+        {
+            if (rented != null)
+                ArrayPool<byte>.Shared.Return(rented);
         }
 
         /// <summary>
