@@ -17,6 +17,43 @@ namespace OpenccJiebaLib
     internal static class OpenccJiebaNative
     {
         /// <summary>
+        /// Gets the Opencc-Jieba C API ABI version number.
+        /// </summary>
+        /// <remarks>
+        /// This value is intended for <b>runtime binary compatibility checks</b>.
+        /// It changes <b>only</b> when the native C ABI is broken (for example,
+        /// when function signatures or calling conventions change).
+        ///
+        /// <para>
+        /// Managed bindings (P/Invoke, JNI, ctypes, etc.) should verify this value
+        /// before invoking other native functions.
+        /// </para>
+        /// </remarks>
+        /// <returns>
+        /// A monotonically increasing ABI version number.
+        /// </returns>
+        [DllImport(DllPath, CallingConvention = CallingConvention.Cdecl)]
+        public static extern uint opencc_jieba_abi_number();
+
+        /// <summary>
+        /// Gets the Opencc-Jieba native library version string.
+        /// </summary>
+        /// <remarks>
+        /// The returned string is a UTF-8, null-terminated version identifier
+        /// (for example, <c>"0.7.3"</c>).
+        ///
+        /// <para>
+        /// The returned pointer is owned by the native library and remains valid
+        /// for the lifetime of the process. Callers must not free it.
+        /// </para>
+        /// </remarks>
+        /// <returns>
+        /// A pointer to a UTF-8 encoded, null-terminated version string.
+        /// </returns>
+        [DllImport(DllPath, CallingConvention = CallingConvention.Cdecl)]
+        public static extern IntPtr opencc_jieba_version_string();
+        
+        /// <summary>
         /// The platform-neutral library name. The .NET runtime automatically resolves it to:
         /// <list type="bullet">
         /// <item><description><c>opencc_jieba_capi.dll</c> on Windows</description></item>

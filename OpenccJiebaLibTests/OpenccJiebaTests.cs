@@ -249,4 +249,26 @@ public sealed class OpenccJiebaTests
             Assert.Contains("Invalid keyword algorithm", ex.Message);
         }
     }
+    
+    [TestMethod]
+    public void AbiNoAndVersionStringTest()
+    {
+        var abiNum = OpenccJieba.GetNativeAbiNumber();
+        var abiVersion = OpenccJieba.GetNativeVersionString();
+
+        Assert.AreEqual(1, abiNum, "AbiNum should be 1.");
+
+        Assert.IsFalse(string.IsNullOrWhiteSpace(abiVersion), "Version string should not be empty.");
+
+        var parts = abiVersion.Split('.');
+        Assert.HasCount(3, parts, "Version should have format x.y.z.");
+
+        foreach (var part in parts)
+        {
+            Assert.IsTrue(
+                int.TryParse(part, out var value) && value >= 0,
+                $"Version component '{part}' must be a non-negative integer."
+            );
+        }
+    }
 }

@@ -109,6 +109,40 @@ namespace OpenccJiebaLib
         {
             Dispose(disposing: false);
         }
+        
+        /// <summary>
+        /// Gets the numeric ABI version of the underlying native OpenCC-FMMSEG library.
+        /// </summary>
+        /// <remarks>
+        /// The ABI number represents the native binary interface version and is used
+        /// to ensure compatibility between this managed wrapper and the native library.
+        /// <para/>
+        /// A change in ABI number indicates a breaking change at the native interface level.
+        /// </remarks>
+        /// <returns>
+        /// An integer representing the native ABI version.
+        /// </returns>
+        public static int GetNativeAbiNumber()
+        {
+            return (int)OpenccJiebaNative.opencc_jieba_abi_number();
+        }
+
+        /// <summary>
+        /// Gets the version string of the underlying native OpenCC-FMMSEG library.
+        /// </summary>
+        /// <remarks>
+        /// The returned value is a semantic version string in the form <c>x.y.z</c>
+        /// (for example, <c>0.8.4</c>), identifying the native library build.
+        /// <para/>
+        /// This value is intended for diagnostics, logging, and display purposes.
+        /// </remarks>
+        /// <returns>
+        /// A semantic version string (<c>x.y.z</c>) reported by the native library.
+        /// </returns>
+        public static string GetNativeVersionString()
+        {
+            return Utf8BytesToString(OpenccJiebaNative.opencc_jieba_version_string());
+        }
 
         /// <summary>
         /// Converts Chinese text using the specified OpenCC configuration, optionally including punctuation conversion.
