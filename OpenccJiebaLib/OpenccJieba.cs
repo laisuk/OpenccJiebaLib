@@ -111,7 +111,7 @@ namespace OpenccJiebaLib
         }
         
         /// <summary>
-        /// Gets the numeric ABI version of the underlying native OpenCC-FMMSEG library.
+        /// Gets the numeric ABI version of the underlying native Opencc-Jieba library.
         /// </summary>
         /// <remarks>
         /// The ABI number represents the native binary interface version and is used
@@ -128,11 +128,11 @@ namespace OpenccJiebaLib
         }
 
         /// <summary>
-        /// Gets the version string of the underlying native OpenCC-FMMSEG library.
+        /// Gets the version string of the underlying native Opencc-Jieba library.
         /// </summary>
         /// <remarks>
         /// The returned value is a semantic version string in the form <c>x.y.z</c>
-        /// (for example, <c>0.8.4</c>), identifying the native library build.
+        /// (for example, <c>0.7.3</c>), identifying the native library build.
         /// <para/>
         /// This value is intended for diagnostics, logging, and display purposes.
         /// </remarks>

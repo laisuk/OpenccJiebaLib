@@ -12,6 +12,7 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 
 - Added `OpenccConfig` enum for strongly typed OpenCC conversion configuration.
 - Added `Convert(string, OpenccConfig, bool)` overload for type-safe conversion calls.
+- Added `GetNativeAbiNumber` and `GetNativeVersionString`
 
 ### Changed
 
