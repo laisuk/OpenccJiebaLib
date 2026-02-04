@@ -17,6 +17,20 @@ namespace OpenccJiebaLib
     internal static class OpenccJiebaNative
     {
         /// <summary>
+        /// The platform-neutral library name. The .NET runtime automatically resolves it to:
+        /// <list type="bullet">
+        /// <item><description><c>opencc_jieba_capi.dll</c> on Windows</description></item>
+        /// <item><description><c>libopencc_jieba_capi.so</c> on Linux</description></item>
+        /// <item><description><c>libopencc_jieba_capi.dylib</c> on macOS</description></item>
+        /// </list>
+        /// </summary>
+        private const string DllPath = "opencc_jieba_capi";
+
+        // ─────────────────────────────────────────────────────────────
+        // Core Lifecycle
+        // ─────────────────────────────────────────────────────────────
+
+        /// <summary>
         /// Gets the Opencc-Jieba C API ABI version number.
         /// </summary>
         /// <remarks>
@@ -52,20 +66,6 @@ namespace OpenccJiebaLib
         /// </returns>
         [DllImport(DllPath, CallingConvention = CallingConvention.Cdecl)]
         public static extern IntPtr opencc_jieba_version_string();
-        
-        /// <summary>
-        /// The platform-neutral library name. The .NET runtime automatically resolves it to:
-        /// <list type="bullet">
-        /// <item><description><c>opencc_jieba_capi.dll</c> on Windows</description></item>
-        /// <item><description><c>libopencc_jieba_capi.so</c> on Linux</description></item>
-        /// <item><description><c>libopencc_jieba_capi.dylib</c> on macOS</description></item>
-        /// </list>
-        /// </summary>
-        private const string DllPath = "opencc_jieba_capi";
-
-        // ─────────────────────────────────────────────────────────────
-        // Core Lifecycle
-        // ─────────────────────────────────────────────────────────────
 
         /// <summary>
         /// Creates a new native OpenCC + Jieba instance.
