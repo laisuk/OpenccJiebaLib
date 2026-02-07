@@ -64,7 +64,7 @@ runtimes/<RID>/native/
 
 **Shipped RIDs:** `win-x64`, `linux-x64`, `osx-arm64`, `osx-x64`
 
-> When publishing with `-r <RID>`, `dotnet publish` copies only the matching native runtime into the publish output.
+> When publishing with `-r <RID>`, `dotnet publish` copies only the matching native runtime into the publishing output.
 
 ---
 
