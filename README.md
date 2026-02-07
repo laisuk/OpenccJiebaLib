@@ -29,12 +29,10 @@ Chinese text conversion (Simplified/Traditional), segmentation, and keyword extr
 
 ### Installation
 
-#### Option 1 — As Project Reference
+#### Option 1 — Project Reference
 
 * Add a project reference to **OpenccJiebaLib** in your solution.
-* Provide the native binary so it can be found at runtime.
-
-Recommended layout (same as NuGet):
+* Ensure the native binary is available at runtime in the standard layout:
 
 ```
 runtimes/<RID>/native/
@@ -47,7 +45,10 @@ Expected filenames:
 * macOS: `libopencc_jieba_capi.dylib`
 
 > 🧪 **Unit tests** (MSTest/xUnit/nUnit) also need the native binaries in the test project’s output folder.
-> Use the same copy strategy as above or add a `Target` to auto-copy natives after build.
+> Use the same copy strategy (copy `runtimes/**` into `bin/…`) or add an MSBuild `Target` to auto-copy natives after
+> build.
+
+---
 
 #### Option 2 — From NuGet
 
@@ -55,14 +56,15 @@ Expected filenames:
 dotnet add package OpenccJiebaLib
 ```
 
-* The NuGet package includes platform-specific native runtimes and deploys them under:
+* The NuGet package includes platform-specific native runtimes under:
 
 ```
 runtimes/<RID>/native/
 ```
 
-> **Shipped RIDs:** `win-x64`, `linux-x64`, `osx-arm64`
-> Other RIDs can be supported via the drop-in mechanism below.
+**Shipped RIDs:** `win-x64`, `linux-x64`, `osx-arm64`, `osx-x64`
+
+> When publishing with `-r <RID>`, `dotnet publish` copies only the matching native runtime into the publish output.
 
 ---
 
@@ -74,13 +76,13 @@ OpenccJiebaLib loads the native library from the standard NuGet layout:
 runtimes/<RID>/native/<library>
 ```
 
-To add support for another platform, simply drop in your own native binary:
+To add support for another platform, drop in your own native binary:
 
 1. Create the directory:
 
-```
-runtimes/<RID>/native/
-```
+   ```
+   runtimes/<RID>/native/
+   ```
 
 2. Copy the native library using the expected filename:
 
