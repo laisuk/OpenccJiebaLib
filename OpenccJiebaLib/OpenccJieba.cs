@@ -122,6 +122,7 @@ namespace OpenccJiebaLib
         /// <returns>
         /// An integer representing the native ABI version.
         /// </returns>
+        /// <p>@Since v1.2.0</p>
         public static int GetNativeAbiNumber()
         {
             return (int)OpenccJiebaNative.opencc_jieba_abi_number();
@@ -139,6 +140,7 @@ namespace OpenccJiebaLib
         /// <returns>
         /// A semantic version string (<c>x.y.z</c>) reported by the native library.
         /// </returns>
+        /// <p>@Since v1.2.0</p>
         public static string GetNativeVersionString()
         {
             return Utf8BytesToString(OpenccJiebaNative.opencc_jieba_version_string());
