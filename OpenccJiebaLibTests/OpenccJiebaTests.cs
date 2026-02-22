@@ -198,10 +198,10 @@ public sealed class OpenccJiebaTests
             );
 
             // Ensure mapping is stable and canonical
-            if (s.IndexOf("tf", StringComparison.OrdinalIgnoreCase) >= 0)
+            if (s.Contains("tf", StringComparison.OrdinalIgnoreCase))
                 Assert.AreEqual("tfidf", native, "Expected TF-IDF canonical method for: " + s);
 
-            if (s.IndexOf("rank", StringComparison.OrdinalIgnoreCase) >= 0)
+            if (s.Contains("rank", StringComparison.OrdinalIgnoreCase))
                 Assert.AreEqual("textrank", native, "Expected TextRank canonical method for: " + s);
         }
     }
@@ -237,19 +237,23 @@ public sealed class OpenccJiebaTests
         const int topK = 5;
         const string invalid = "bm25";
 
+        ArgumentException? ex = null;
+
         try
         {
             // Act
             _openccJieba.JiebaExtractKeywordsWeights(input, topK, invalid);
             Assert.Fail("Expected ArgumentException was not thrown.");
         }
-        catch (ArgumentException ex)
+        catch (ArgumentException e)
         {
-            // Assert
-            Assert.Contains("Invalid keyword algorithm", ex.Message);
+            ex = e;
         }
+
+        // Assert
+        Assert.Contains("Invalid keyword algorithm", ex.Message);
     }
-    
+
     [TestMethod]
     public void AbiNoAndVersionStringTest()
     {
