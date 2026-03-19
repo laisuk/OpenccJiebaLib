@@ -8,6 +8,36 @@ using System.Text;
 namespace OpenccJiebaLib
 {
     /// <summary>
+    /// Represents a Jieba token and its corresponding part-of-speech tag.
+    /// </summary>
+    public readonly struct JiebaTagItem
+    {
+        /// <summary>
+        /// Gets the segmented token text.
+        /// </summary>
+        public string Word { get; }
+
+        /// <summary>
+        /// Gets the part-of-speech tag.
+        /// </summary>
+        public string Tag { get; }
+
+        /// <summary>
+        /// Initializes a new tagged token.
+        /// </summary>
+        public JiebaTagItem(string word, string tag)
+        {
+            Word = word ?? string.Empty;
+            Tag = tag ?? string.Empty;
+        }
+
+        /// <summary>
+        /// Returns a readable representation in the form "word/tag".
+        /// </summary>
+        public override string ToString() => Word + "/" + Tag;
+    }
+
+    /// <summary>
     /// Provides a managed wrapper for OpenCC and Jieba C API functions, enabling Chinese text conversion and segmentation.
     /// </summary>
     /// <remarks>
@@ -109,7 +139,7 @@ namespace OpenccJiebaLib
         {
             Dispose(disposing: false);
         }
-        
+
         /// <summary>
         /// Gets the numeric ABI version of the underlying native Opencc-Jieba library.
         /// </summary>
@@ -338,8 +368,9 @@ namespace OpenccJiebaLib
         /// </returns>
         /// <remarks>
         /// This method uses the native Jieba tokenizer via OpenCC-Jieba.
-        /// A temporary native instance is created and released for each call.
         /// The returned tokens preserve the original text order.
+        /// Cut mode provides a balanced segmentation between accuracy and performance,
+        /// suitable for general text processing.
         /// </remarks>
         /// <exception cref="ObjectDisposedException">If the instance has been disposed.</exception>
         public string[] JiebaCut(string input, bool hmm)
@@ -369,6 +400,195 @@ namespace OpenccJiebaLib
                 if (result != IntPtr.Zero)
                     OpenccJiebaNative.opencc_jieba_free_string_array(result);
             }
+        }
+
+        /// <summary>
+        /// Performs Jieba search-mode word segmentation on the input text.
+        /// </summary>
+        /// <param name="input">
+        /// Input text to tokenize.
+        /// </param>
+        /// <param name="hmm">
+        /// Whether to enable HMM-based segmentation.
+        /// When enabled, unknown words may be inferred using a Hidden Markov Model.
+        /// </param>
+        /// <returns>
+        /// An array of segmented tokens.
+        /// Returns <see cref="Array.Empty{String}"/> if the input is empty
+        /// or if the native tokenizer returns no result.
+        /// </returns>
+        /// <remarks>
+        /// This method uses the native Jieba tokenizer via OpenCC-Jieba.
+        /// The returned tokens preserve the original text order.
+        /// Search mode may produce finer-grained tokens suitable for indexing or searching.
+        /// </remarks>
+        /// <exception cref="ObjectDisposedException">If the instance has been disposed.</exception>
+        public string[] JiebaCutForSearch(string input, bool hmm)
+        {
+            if (_disposed) throw new ObjectDisposedException(nameof(OpenccJieba));
+
+            if (string.IsNullOrEmpty(input))
+                return Array.Empty<string>();
+
+            if (_openccInstance == IntPtr.Zero)
+                throw new InvalidOperationException("Native instance is not initialized or has been disposed.");
+
+            byte[] inputBytes = null;
+            var result = IntPtr.Zero;
+
+            try
+            {
+                RentUtf8Z(input, out inputBytes);
+
+                result = OpenccJiebaNative.opencc_jieba_cut_for_search(_openccInstance, inputBytes, hmm);
+                return result == IntPtr.Zero ? Array.Empty<string>() : MarshalNullTerminatedStringArray(result);
+            }
+            finally
+            {
+                ReturnRented(inputBytes);
+
+                if (result != IntPtr.Zero)
+                    OpenccJiebaNative.opencc_jieba_free_string_array(result);
+            }
+        }
+
+        /// <summary>
+        /// Performs Jieba full-mode word segmentation on the input text.
+        /// </summary>
+        /// <param name="input">
+        /// Input text to tokenize.
+        /// </param>
+        /// <returns>
+        /// An array of segmented tokens.
+        /// Returns <see cref="Array.Empty{String}"/> if the input is empty
+        /// or if the native tokenizer returns no result.
+        /// </returns>
+        /// <remarks>
+        /// This method uses the native Jieba tokenizer via OpenCC-Jieba.
+        /// The returned tokens preserve the original text order.
+        /// Full mode attempts to return all possible words in the sentence.
+        /// </remarks>
+        /// <exception cref="ObjectDisposedException">If the instance has been disposed.</exception>
+        public string[] JiebaCutAll(string input)
+        {
+            if (_disposed) throw new ObjectDisposedException(nameof(OpenccJieba));
+
+            if (string.IsNullOrEmpty(input))
+                return Array.Empty<string>();
+
+            if (_openccInstance == IntPtr.Zero)
+                throw new InvalidOperationException("Native instance is not initialized or has been disposed.");
+
+            byte[] inputBytes = null;
+            var result = IntPtr.Zero;
+
+            try
+            {
+                RentUtf8Z(input, out inputBytes);
+
+                result = OpenccJiebaNative.opencc_jieba_cut_all(_openccInstance, inputBytes);
+                return result == IntPtr.Zero ? Array.Empty<string>() : MarshalNullTerminatedStringArray(result);
+            }
+            finally
+            {
+                ReturnRented(inputBytes);
+
+                if (result != IntPtr.Zero)
+                    OpenccJiebaNative.opencc_jieba_free_string_array(result);
+            }
+        }
+
+        /// <summary>
+        /// Performs Jieba part-of-speech tagging on the input text.
+        /// </summary>
+        /// <param name="input">
+        /// Input text to tokenize and tag.
+        /// </param>
+        /// <param name="hmm">
+        /// Whether to enable HMM-based segmentation.
+        /// When enabled, unknown words may be inferred using a Hidden Markov Model.
+        /// </param>
+        /// <returns>
+        /// An array of tagged tokens.
+        /// Returns <see cref="Array.Empty{T}"/> if the input is empty
+        /// or if the native tagger returns no result.
+        /// </returns>
+        /// <remarks>
+        /// This method uses the native Jieba tagger via OpenCC-Jieba.
+        /// The returned items preserve the original text order.
+        /// Tag mode returns segmented tokens with part-of-speech labels,
+        /// suitable for linguistic analysis.
+        /// </remarks>
+        /// <exception cref="ObjectDisposedException">If the instance has been disposed.</exception>
+        public JiebaTagItem[] JiebaTag(string input, bool hmm)
+        {
+            if (_disposed) throw new ObjectDisposedException(nameof(OpenccJieba));
+
+            if (string.IsNullOrEmpty(input))
+                return Array.Empty<JiebaTagItem>();
+
+            if (_openccInstance == IntPtr.Zero)
+                throw new InvalidOperationException("Native instance is not initialized or has been disposed.");
+
+            byte[] inputBytes = null;
+            var result = IntPtr.Zero;
+
+            try
+            {
+                RentUtf8Z(input, out inputBytes);
+
+                result = OpenccJiebaNative.opencc_jieba_tag(_openccInstance, inputBytes, hmm);
+                return result == IntPtr.Zero
+                    ? Array.Empty<JiebaTagItem>()
+                    : MarshalNullTerminatedTagArray(result);
+            }
+            finally
+            {
+                ReturnRented(inputBytes);
+
+                if (result != IntPtr.Zero)
+                    OpenccJiebaNative.opencc_jieba_free_tag_array(result);
+            }
+        }
+        
+        /// <summary>
+        /// Performs Jieba part-of-speech tagging and returns results as "word/tag" strings.
+        /// </summary>
+        /// <param name="input">
+        /// Input text to tokenize and tag.
+        /// </param>
+        /// <param name="hmm">
+        /// Whether to enable HMM-based segmentation.
+        /// </param>
+        /// <returns>
+        /// An array of strings in the format "word/tag".
+        /// Returns <see cref="Array.Empty{String}"/> if the input is empty
+        /// or if the native tagger returns no result.
+        /// </returns>
+        /// <remarks>
+        /// This is a convenience wrapper over <see cref="JiebaTag(string, bool)"/>.
+        /// Suitable for display, logging, or CLI output.
+        /// </remarks>
+        /// <exception cref="ObjectDisposedException">If the instance has been disposed.</exception>
+        public string[] JiebaTagAsString(string input, bool hmm)
+        {
+            if (_disposed) throw new ObjectDisposedException(nameof(OpenccJieba));
+
+            var tags = JiebaTag(input, hmm);
+
+            if (tags.Length == 0)
+                return Array.Empty<string>();
+
+            var result = new string[tags.Length];
+
+            for (var i = 0; i < tags.Length; i++)
+            {
+                // Avoid interpolation overhead in hot path
+                var item = tags[i];
+                result[i] = item.Word + "/" + item.Tag;
+            }
+
+            return result;
         }
 
         /// <summary>
@@ -834,6 +1054,35 @@ namespace OpenccJiebaLib
             }
 
             return strings.ToArray();
+        }
+
+        private static unsafe JiebaTagItem[] MarshalNullTerminatedTagArray(IntPtr arrayPtr)
+        {
+            if (arrayPtr == IntPtr.Zero)
+                return Array.Empty<JiebaTagItem>();
+
+            var list = new List<JiebaTagItem>();
+
+            var structSize = sizeof(OpenccJiebaNative.OpenccJiebaTagNative);
+            var current = (byte*)arrayPtr;
+
+            while (true)
+            {
+                var native = *(OpenccJiebaNative.OpenccJiebaTagNative*)current;
+
+                // Sentinel: both null
+                if (native.word == IntPtr.Zero && native.tag == IntPtr.Zero)
+                    break;
+
+                var word = Utf8BytesToString(native.word);
+                var tag = Utf8BytesToString(native.tag);
+
+                list.Add(new JiebaTagItem(word, tag));
+
+                current += structSize;
+            }
+
+            return list.Count == 0 ? Array.Empty<JiebaTagItem>() : list.ToArray();
         }
 
         #endregion

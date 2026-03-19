@@ -73,6 +73,117 @@ public sealed class OpenccJiebaTests
     }
 
     [TestMethod]
+    public void JiebaCutForSearch_ShouldReturnCorrectSegments()
+    {
+        // Arrange
+        const string input = "我来到北京清华大学";
+        const bool hmm = true;
+
+        // Act
+        string[] result = _openccJieba.JiebaCutForSearch(input, hmm);
+
+        // Assert
+        Assert.IsNotNull(result, "JiebaCutForSearch returned null.");
+        Assert.AreNotEqual(0, result.Length, "JiebaCutForSearch returned an empty array.");
+
+        // Search mode is finer-grained, so just check key tokens exist
+        CollectionAssert.Contains(result, "我");
+        CollectionAssert.Contains(result, "来到");
+        CollectionAssert.Contains(result, "北京");
+        CollectionAssert.Contains(result, "清华大学");
+
+        // Optional: search mode usually splits more
+        Assert.IsGreaterThanOrEqualTo(4, result.Length, "Search mode should produce finer-grained tokens.");
+    }
+
+    [TestMethod]
+    public void JiebaCutAll_ShouldReturnCorrectSegments()
+    {
+        // Arrange
+        const string input = "我来到北京清华大学";
+
+        // Act
+        string[] result = _openccJieba.JiebaCutAll(input);
+
+        // Assert
+        Assert.IsNotNull(result, "JiebaCutAll returned null.");
+        Assert.AreNotEqual(0, result.Length, "JiebaCutAll returned an empty array.");
+
+        // Full mode returns all possible words, so only check key presence
+        CollectionAssert.Contains(result, "我");
+        CollectionAssert.Contains(result, "来到");
+        CollectionAssert.Contains(result, "北京");
+        CollectionAssert.Contains(result, "清华大学");
+
+        // Optional: full mode should be >= cut mode
+        Assert.IsGreaterThanOrEqualTo(4, result.Length, "Full mode should produce equal or more tokens than cut mode.");
+    }
+
+    [TestMethod]
+    public void JiebaTag_ShouldReturnTaggedSegments()
+    {
+        // Arrange
+        const string input = "我来到北京清华大学";
+        const bool hmm = true;
+
+        // Act
+        var result = _openccJieba.JiebaTag(input, hmm);
+
+        // Assert basic correctness
+        Assert.IsNotNull(result, "JiebaTag returned null.");
+        Assert.AreNotEqual(0, result.Length, "JiebaTag returned an empty array.");
+
+        // Print output (for first-run inspection)
+        Console.WriteLine("JiebaTag Output:");
+        foreach (var item in result)
+        {
+            Console.Write($"{item.Word}/{item.Tag} ");
+        }
+
+        Console.WriteLine();
+
+        // Minimal correctness checks (non-strict)
+        Assert.Contains(x => x.Word == "我", result, "Missing token: 我");
+        Assert.Contains(x => x.Word == "来到", result, "Missing token: 来到");
+        Assert.Contains(x => x.Word == "北京", result, "Missing token: 北京");
+        Assert.Contains(x => x.Word == "清华大学", result, "Missing token: 清华大学");
+
+        // Ensure tags exist
+        Assert.IsTrue(result.All(x => !string.IsNullOrEmpty(x.Tag)), "Some tokens have empty tags.");
+    }
+
+    [TestMethod]
+    public void JiebaTag_ShouldReturnCorrectTaggedSegments()
+    {
+        // Arrange
+        const string input = "我来到北京清华大学";
+        const bool hmm = true;
+
+        // Act
+        var result = _openccJieba.JiebaTag(input, hmm);
+
+        // Assert
+        Assert.IsNotNull(result, "JiebaTag returned null.");
+        Assert.AreNotEqual(0, result.Length, "JiebaTag returned an empty array.");
+
+        var expected = new[]
+        {
+            new JiebaTagItem("我", "r"),
+            new JiebaTagItem("来到", "v"),
+            new JiebaTagItem("北京", "ns"),
+            new JiebaTagItem("清华大学", "nt"),
+        };
+
+        Assert.HasCount(expected.Length, result, "Unexpected number of tagged tokens.");
+
+        for (var i = 0; i < expected.Length; i++)
+        {
+            Assert.AreEqual(expected[i].Word, result[i].Word, $"Word mismatch at index {i}.");
+            Assert.AreEqual(expected[i].Tag, result[i].Tag, $"Tag mismatch at index {i}.");
+        }
+    }
+
+    [TestMethod]
     public void JiebaCutAndJoin_ShouldReturnJoinedSegments()
     {
         // Arrange
@@ -94,6 +205,19 @@ public sealed class OpenccJiebaTests
         Assert.AreEqual(expectedJoined, result, "The joined segmented string does not match the expected output.");
     }
 
+    [TestMethod]
+    public void JiebaTagAsString_ShouldReturnFormattedOutput()
+    {
+        const string input = "我来到北京清华大学";
+        const bool hmm = true;
+
+        var result = _openccJieba.JiebaTagAsString(input, hmm);
+
+        CollectionAssert.AreEqual(
+            new[] { "我/r", "来到/v", "北京/ns", "清华大学/nt" },
+            result
+        );
+    }
 
     [TestMethod]
     public void JiebaKeywordExtractTextRank_Test()

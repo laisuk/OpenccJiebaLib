@@ -92,7 +92,7 @@ public:
     {
         if (input.empty()) return {};
 
-        const char* output = opencc_jieba_convert(instance_, input.c_str(), config_.c_str(), punctuation_);
+        char* output = opencc_jieba_convert(instance_, input.c_str(), config_.c_str(), punctuation_);
         if (!output) return {};
 
         std::string result(output);
@@ -108,7 +108,7 @@ public:
         if (input.empty()) return {};
 
         const std::string& cfg = isValidConfig(cfgOverride) ? cfgOverride : config_;
-        const char* output = opencc_jieba_convert(instance_, input.c_str(), cfg.c_str(), punctOverride);
+        char* output = opencc_jieba_convert(instance_, input.c_str(), cfg.c_str(), punctOverride);
         if (!output) return {};
 
         std::string result(output);
@@ -129,7 +129,7 @@ public:
     }
 
     [[nodiscard]] std::vector<std::string> extractKeywords(const std::string& input,
-                                                           const int topK,
+                                                           const size_t topK,
                                                            const std::string& method) const
     {
         char** result = opencc_jieba_keywords(instance_, input.c_str(), topK, method.c_str());
@@ -141,7 +141,7 @@ public:
                                          const std::string& delimiter = " ") const
     {
         if (input.empty()) return {};
-        const char* output = opencc_jieba_cut_and_join(instance_, input.c_str(), hmm, delimiter.c_str());
+        char* output = opencc_jieba_cut_and_join(instance_, input.c_str(), hmm, delimiter.c_str());
         if (!output) return {};
 
         std::string result(output);
@@ -149,18 +149,18 @@ public:
         return result;
     }
 
-    [[nodiscard]] std::vector<std::string> extractKeywordsTextRank(const std::string& input, const int topK) const
+    [[nodiscard]] std::vector<std::string> extractKeywordsTextRank(const std::string& input, const size_t topK) const
     {
         return extractKeywords(input, topK, "textrank");
     }
 
-    [[nodiscard]] std::vector<std::string> extractKeywordsTfidf(const std::string& input, const int topK) const
+    [[nodiscard]] std::vector<std::string> extractKeywordsTfidf(const std::string& input, const size_t topK) const
     {
         return extractKeywords(input, topK, "tfidf");
     }
 
     [[nodiscard]] std::pair<std::vector<std::string>, std::vector<double>>
-    extractKeywordsAndWeights(const std::string& input, const int topK, const std::string& method) const
+    extractKeywordsAndWeights(const std::string& input, const size_t topK, const std::string& method) const
     {
         size_t len = 0;
         char** keywords = nullptr;
@@ -175,19 +175,27 @@ public:
             throw std::runtime_error("Keyword extraction failed.");
         }
 
-        std::vector<std::string> keywordList;
-        std::vector<double> weightList;
-        keywordList.reserve(len);
-        weightList.reserve(len);
-
-        for (size_t i = 0; i < len; ++i)
+        try
         {
-            keywordList.emplace_back(keywords[i]);
-            weightList.emplace_back(weights[i]);
-        }
+            std::vector<std::string> keywordList;
+            std::vector<double> weightList;
+            keywordList.reserve(len);
+            weightList.reserve(len);
 
-        opencc_jieba_free_keywords_and_weights(keywords, weights, len);
-        return {std::move(keywordList), std::move(weightList)};
+            for (size_t i = 0; i < len; ++i)
+            {
+                keywordList.emplace_back(keywords[i]);
+                weightList.emplace_back(weights[i]);
+            }
+
+            opencc_jieba_free_keywords_and_weights(keywords, weights, len);
+            return {std::move(keywordList), std::move(weightList)};
+        }
+        catch (...)
+        {
+            opencc_jieba_free_keywords_and_weights(keywords, weights, len);
+            throw;
+        }
     }
 
 private:

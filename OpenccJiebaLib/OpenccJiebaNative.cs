@@ -16,6 +16,13 @@ namespace OpenccJiebaLib
     /// </remarks>
     internal static class OpenccJiebaNative
     {
+        [StructLayout(LayoutKind.Sequential)]
+        internal struct OpenccJiebaTagNative
+        {
+            internal IntPtr word;
+            internal IntPtr tag;
+        }
+
         /// <summary>
         /// The platform-neutral library name. The .NET runtime automatically resolves it to:
         /// <list type="bullet">
@@ -39,7 +46,7 @@ namespace OpenccJiebaLib
         /// when function signatures or calling conventions change).
         ///
         /// <para>
-        /// Managed bindings (P/Invoke, JNI, ctypes, etc.) should verify this value
+        /// Managed bindings (P/Invoke, JNI, cTypes, etc.) should verify this value
         /// before invoking other native functions.
         /// </para>
         /// </remarks>
@@ -143,7 +150,55 @@ namespace OpenccJiebaLib
         /// Must be freed via <see cref="opencc_jieba_free_string_array"/>.
         /// </returns>
         [DllImport(DllPath, CallingConvention = CallingConvention.Cdecl)]
-        internal static extern IntPtr opencc_jieba_cut(IntPtr opencc, byte[] input, bool hmm);
+        internal static extern IntPtr opencc_jieba_cut(
+            IntPtr opencc,
+            byte[] input,
+            [MarshalAs(UnmanagedType.I1)] bool hmm);
+
+        /// <summary>
+        /// Performs search-mode word segmentation on UTF-8 text using Jieba.
+        /// </summary>
+        /// <param name="opencc">Pointer to the native instance.</param>
+        /// <param name="input">UTF-8 encoded null-terminated input string.</param>
+        /// <param name="hmm">Whether to enable HMM (Hidden Markov Model) for segmentation.</param>
+        /// <returns>
+        /// Pointer to a null-terminated array of UTF-8 string pointers.
+        /// Must be freed via <see cref="opencc_jieba_free_string_array"/>.
+        /// </returns>
+        [DllImport(DllPath, CallingConvention = CallingConvention.Cdecl)]
+        internal static extern IntPtr opencc_jieba_cut_for_search(
+            IntPtr opencc,
+            byte[] input,
+            [MarshalAs(UnmanagedType.I1)] bool hmm);
+
+        /// <summary>
+        /// Performs full-mode word segmentation on UTF-8 text using Jieba.
+        /// </summary>
+        /// <param name="opencc">Pointer to the native instance.</param>
+        /// <param name="input">UTF-8 encoded null-terminated input string.</param>
+        /// <returns>
+        /// Pointer to a null-terminated array of UTF-8 string pointers.
+        /// Must be freed via <see cref="opencc_jieba_free_string_array"/>.
+        /// </returns>
+        [DllImport(DllPath, CallingConvention = CallingConvention.Cdecl)]
+        internal static extern IntPtr opencc_jieba_cut_all(
+            IntPtr opencc,
+            byte[] input);
+
+        /// <summary>
+        /// Performs part-of-speech tagging on UTF-8 text using Jieba.
+        /// </summary>
+        /// <param name="opencc">Pointer to the native instance.</param>
+        /// <param name="input">UTF-8 encoded null-terminated input string.</param>
+        /// <param name="hmm">Whether to enable HMM (Hidden Markov Model) for tagging.</param>
+        /// <returns>
+        /// Pointer to a null-terminated array of <see cref="OpenccJiebaTagNative"/> entries.
+        /// The array is terminated by a sentinel entry where both <c>word</c> and <c>tag</c> are null.
+        /// Must be freed via <see cref="opencc_jieba_free_tag_array"/>.
+        /// </returns>
+        [DllImport(DllPath, CallingConvention = CallingConvention.Cdecl)]
+        internal static extern IntPtr opencc_jieba_tag(IntPtr opencc, byte[] input,
+            [MarshalAs(UnmanagedType.I1)] bool hmm);
 
         /// <summary>
         /// Performs word segmentation and joins the result with a specified delimiter.
@@ -157,14 +212,26 @@ namespace OpenccJiebaLib
         /// Must be freed via <see cref="opencc_jieba_free_string"/>.
         /// </returns>
         [DllImport(DllPath, CallingConvention = CallingConvention.Cdecl)]
-        internal static extern IntPtr opencc_jieba_cut_and_join(IntPtr opencc, byte[] input, bool hmm, byte[] delimiter);
+        internal static extern IntPtr
+            opencc_jieba_cut_and_join(
+                IntPtr opencc,
+                byte[] input,
+                [MarshalAs(UnmanagedType.I1)] bool hmm,
+                byte[] delimiter);
 
         /// <summary>
         /// Frees a null-terminated array of UTF-8 string pointers created by <see cref="opencc_jieba_cut"/>.
         /// </summary>
         /// <param name="array">Pointer to the array returned from <see cref="opencc_jieba_cut"/>.</param>
         [DllImport(DllPath, CallingConvention = CallingConvention.Cdecl)]
-        internal static extern IntPtr opencc_jieba_free_string_array(IntPtr array);
+        internal static extern void opencc_jieba_free_string_array(IntPtr array);
+
+        /// <summary>
+        /// Frees a null-terminated array of Jieba tag entries returned by <see cref="opencc_jieba_tag"/>.
+        /// </summary>
+        /// <param name="array">Pointer to the tag array returned from a native call.</param>
+        [DllImport(DllPath, CallingConvention = CallingConvention.Cdecl)]
+        internal static extern void opencc_jieba_free_tag_array(IntPtr array);
 
         // ─────────────────────────────────────────────────────────────
         // Keyword Extraction
