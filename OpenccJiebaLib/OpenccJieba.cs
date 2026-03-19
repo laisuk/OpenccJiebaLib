@@ -36,6 +36,14 @@ namespace OpenccJiebaLib
         /// </summary>
         public override string ToString() => Word + "/" + Tag;
     }
+    
+    public enum SegmentMode
+    {
+        Cut,
+        Search,
+        Full,
+        Tag
+    }
 
     /// <summary>
     /// Provides a managed wrapper for OpenCC and Jieba C API functions, enabling Chinese text conversion and segmentation.
@@ -635,6 +643,87 @@ namespace OpenccJiebaLib
 
                 if (resultPtr != IntPtr.Zero)
                     OpenccJiebaNative.opencc_jieba_free_string(resultPtr);
+            }
+        }
+        
+        /// <summary>
+        /// Performs segmentation or tagging based on the specified mode.
+        /// </summary>
+        /// <param name="input">Input text.</param>
+        /// <param name="mode">Segmentation mode.</param>
+        /// <param name="hmm">Enable HMM (if applicable).</param>
+        /// <returns>
+        /// Segmented tokens or tagged tokens in "word/tag" format.
+        /// </returns>
+        public string[] Segment(string input, SegmentMode mode, bool hmm = true)
+        {
+            if (_disposed) throw new ObjectDisposedException(nameof(OpenccJieba));
+
+            if (string.IsNullOrEmpty(input))
+                return Array.Empty<string>();
+
+            switch (mode)
+            {
+                case SegmentMode.Cut:
+                    return JiebaCut(input, hmm);
+
+                case SegmentMode.Search:
+                    return JiebaCutForSearch(input, hmm);
+
+                case SegmentMode.Full:
+                    return JiebaCutAll(input);
+
+                case SegmentMode.Tag:
+                    return JiebaTagAsString(input, hmm);
+
+                default:
+                    return Array.Empty<string>();
+            }
+        }
+        
+        public string SegmentJoin(
+            string input,
+            SegmentMode mode,
+            string delimiter = " ",
+            bool hmm = true)
+        {
+            if (_disposed) throw new ObjectDisposedException(nameof(OpenccJieba));
+
+            if (string.IsNullOrEmpty(input))
+                return string.Empty;
+
+            switch (mode)
+            {
+                case SegmentMode.Tag:
+                {
+                    var tags = JiebaTag(input, hmm);
+                    if (tags.Length == 0)
+                        return string.Empty;
+
+                    var sb = new StringBuilder(tags.Length * 8); // rough prealloc
+
+                    for (var i = 0; i < tags.Length; i++)
+                    {
+                        if (i > 0)
+                            sb.Append(delimiter);
+
+                        var t = tags[i];
+                        sb.Append(t.Word);
+                        sb.Append('/');
+                        sb.Append(t.Tag);
+                    }
+
+                    return sb.ToString();
+                }
+
+                case SegmentMode.Cut:
+                case SegmentMode.Search:
+                case SegmentMode.Full:
+                default:
+                {
+                    var tokens = Segment(input, mode, hmm);
+                    return tokens.Length == 0 ? string.Empty : string.Join(delimiter, tokens);
+                }
             }
         }
 
