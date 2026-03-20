@@ -36,7 +36,7 @@ namespace OpenccJiebaLib
         /// </summary>
         public override string ToString() => Word + "/" + Tag;
     }
-    
+
     public enum SegmentMode
     {
         Cut,
@@ -558,7 +558,7 @@ namespace OpenccJiebaLib
                     OpenccJiebaNative.opencc_jieba_free_tag_array(result);
             }
         }
-        
+
         /// <summary>
         /// Performs Jieba part-of-speech tagging and returns results as "word/tag" strings.
         /// </summary>
@@ -607,45 +607,20 @@ namespace OpenccJiebaLib
         /// <param name="delimiter">The delimiter to use for joining the segmented words.</param>
         /// <returns>A single string with segmented words joined by the delimiter.</returns>
         /// <exception cref="ObjectDisposedException">If the instance has been disposed.</exception>
+        /// <remarks>
+        /// ⚠️ Deprecated. Use <see cref="SegmentJoin(string,SegmentMode,bool,string)"/> instead.
+        /// Equivalent to:
+        /// <code>
+        /// SegmentJoin(input, SegmentMode.Cut, delimiter, hmm)
+        /// </code>
+        /// </remarks>
+        [Obsolete("JiebaCutAndJoin is deprecated. Use SegmentJoin(input, SegmentMode.Cut, hmm, delimiter) instead.")]
         public string JiebaCutAndJoin(string input, bool hmm, string delimiter)
         {
-            if (_disposed) throw new ObjectDisposedException(nameof(OpenccJieba));
-
-            if (string.IsNullOrEmpty(input))
-                return string.Empty;
-
-            if (_openccInstance == IntPtr.Zero)
-                throw new InvalidOperationException("Native instance is not initialized or has been disposed.");
-
-            // Prefer predictable behavior: treat null delimiter as empty delimiter.
-            if (delimiter == null)
-                delimiter = string.Empty;
-
-            byte[] inputBytes = null;
-            var delimiterBytes = StringToUtf8BytesZ(delimiter);
-            var resultPtr = IntPtr.Zero;
-
-            try
-            {
-                RentUtf8Z(input, out inputBytes);
-
-                resultPtr = OpenccJiebaNative.opencc_jieba_cut_and_join(
-                    _openccInstance, inputBytes, hmm, delimiterBytes);
-
-                if (resultPtr == IntPtr.Zero)
-                    return string.Empty;
-
-                return Utf8BytesToString(resultPtr) ?? string.Empty;
-            }
-            finally
-            {
-                ReturnRented(inputBytes);
-
-                if (resultPtr != IntPtr.Zero)
-                    OpenccJiebaNative.opencc_jieba_free_string(resultPtr);
-            }
+            // Keep exact behavior mapping to new API
+            return SegmentJoin(input, SegmentMode.Cut, hmm, delimiter ?? string.Empty);
         }
-        
+
         /// <summary>
         /// Performs segmentation or tagging based on the specified mode.
         /// </summary>
@@ -680,17 +655,19 @@ namespace OpenccJiebaLib
                     return Array.Empty<string>();
             }
         }
-        
+
         public string SegmentJoin(
             string input,
             SegmentMode mode,
-            string delimiter = " ",
-            bool hmm = true)
+            bool hmm = true,
+            string delimiter = " ")
         {
             if (_disposed) throw new ObjectDisposedException(nameof(OpenccJieba));
 
             if (string.IsNullOrEmpty(input))
                 return string.Empty;
+
+            delimiter = delimiter ?? string.Empty;
 
             switch (mode)
             {
@@ -700,7 +677,7 @@ namespace OpenccJiebaLib
                     if (tags.Length == 0)
                         return string.Empty;
 
-                    var sb = new StringBuilder(tags.Length * 8); // rough prealloc
+                    var sb = new StringBuilder(tags.Length * 8);
 
                     for (var i = 0; i < tags.Length; i++)
                     {
@@ -1030,6 +1007,7 @@ namespace OpenccJiebaLib
 
         #region Helper Methods
 
+        /*
         /// <summary>
         /// Allocates a UTF-8 encoded, null-terminated (C-string) byte array
         /// from a managed <see cref="string"/>.
@@ -1058,6 +1036,7 @@ namespace OpenccJiebaLib
             buffer[byteCount] = 0x00; // Explicit null termination
             return buffer;
         }
+        */
 
         /// <summary>
         /// Rents a UTF-8 buffer from <see cref="ArrayPool{T}"/>, encodes the string,

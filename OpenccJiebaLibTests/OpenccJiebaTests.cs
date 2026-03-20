@@ -192,7 +192,7 @@ public sealed class OpenccJiebaTests
         const string delimiter = "|";
 
         // Act
-        var result = _openccJieba.JiebaCutAndJoin(input, hmm, delimiter);
+        var result = _openccJieba.SegmentJoin(input, SegmentMode.Cut, hmm, delimiter);
 
         // Assert
         Assert.IsNotNull(result, "JiebaCutAndJoin returned null.");
@@ -317,7 +317,7 @@ public sealed class OpenccJiebaTests
 
             var native = algo.ToNativeMethod();
             Assert.IsTrue(
-                native == "tfidf" || native == "textrank",
+                native is "tfidf" or "textrank",
                 "Native method should be canonical for: " + s + " => " + native
             );
 
