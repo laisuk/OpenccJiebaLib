@@ -184,6 +184,30 @@ public sealed class OpenccJiebaTests
     }
 
     [TestMethod]
+    public void JiebaSegment_ShouldReturnCorrectSegments()
+    {
+        // Arrange
+        const string input = "我来到北京清华大学";
+        // const bool hmm = true;
+
+        // Act
+        string[] result = _openccJieba.Segment(input, SegmentMode.Search);
+
+        // Assert
+        Assert.IsNotNull(result, "JiebaCutForSearch returned null.");
+        Assert.AreNotEqual(0, result.Length, "JiebaCutForSearch returned an empty array.");
+
+        // Search mode is finer-grained, so just check key tokens exist
+        CollectionAssert.Contains(result, "我");
+        CollectionAssert.Contains(result, "来到");
+        CollectionAssert.Contains(result, "北京");
+        CollectionAssert.Contains(result, "清华大学");
+
+        // Optional: search mode usually splits more
+        Assert.IsGreaterThanOrEqualTo(4, result.Length, "Search mode should produce finer-grained tokens.");
+    }
+
+    [TestMethod]
     public void JiebaCutAndJoin_ShouldReturnJoinedSegments()
     {
         // Arrange

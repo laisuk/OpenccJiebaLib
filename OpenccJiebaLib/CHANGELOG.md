@@ -6,17 +6,24 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
-## [1.2.0] - 2026-02-08
+## [1.2.0] - 2026-03-20
 
 ### Added
 
 - Added `OpenccConfig` enum for strongly typed OpenCC conversion configuration.
 - Added `Convert(string, OpenccConfig, bool)` overload for type-safe conversion calls.
-- Added `GetNativeAbiNumber` and `GetNativeVersionString`
+- Added `GetNativeAbiNumber` and `GetNativeVersionString`.
 - Added `osx-x64` runtimes.
+- Added `JiebaCutForSearch(string, bool)` for search-mode segmentation.
+- Added `JiebaCutAll(string)` for full-mode segmentation.
+- Added `JiebaTag(string, bool)` for part-of-speech tagging.
+- Added `JiebaTagAsString(string, bool)` for tag output in `"word/tag"` string form.
+- Added unified `Segment(string, SegmentMode, bool)` API for cut, search, full, and tag modes.
+- Added unified `SegmentJoin(string, SegmentMode, bool, string)` API for joined segmentation/tagging output.
 
 ### Changed
 
+- Deprecated `JiebaCutAndJoin(string, bool, string)` in favor of `SegmentJoin(string, SegmentMode, bool, string)`.
 - Refactored native P/Invoke bindings into a dedicated native interop class.
 - Simplified conversion API by removing internal config state (`SetConfig` / `GetConfig`);
   configuration is now provided per `Convert()` call.
