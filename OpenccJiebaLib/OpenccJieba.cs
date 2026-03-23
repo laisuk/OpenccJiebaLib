@@ -8,7 +8,7 @@ using System.Text;
 namespace OpenccJiebaLib
 {
     /// <summary>
-    /// Represents a Jieba token and its corresponding part-of-speech tag.
+    /// Represents a segmented token together with its part-of-speech tag.
     /// </summary>
     public readonly struct JiebaTagItem
     {
@@ -18,13 +18,15 @@ namespace OpenccJiebaLib
         public string Word { get; }
 
         /// <summary>
-        /// Gets the part-of-speech tag.
+        /// Gets the part-of-speech tag associated with <see cref="Word"/>.
         /// </summary>
         public string Tag { get; }
 
         /// <summary>
-        /// Initializes a new tagged token.
+        /// Initializes a new instance of the <see cref="JiebaTagItem"/> struct.
         /// </summary>
+        /// <param name="word">The segmented token text.</param>
+        /// <param name="tag">The part-of-speech tag.</param>
         public JiebaTagItem(string word, string tag)
         {
             Word = word ?? string.Empty;
@@ -32,16 +34,35 @@ namespace OpenccJiebaLib
         }
 
         /// <summary>
-        /// Returns a readable representation in the form "word/tag".
+        /// Returns a string in <c>"word/tag"</c> format.
         /// </summary>
+        /// <returns>A readable string representation of this tagged token.</returns>
         public override string ToString() => Word + "/" + Tag;
     }
 
+    /// <summary>
+    /// Specifies the Jieba segmentation or tagging mode to use.
+    /// </summary>
     public enum SegmentMode
     {
+        /// <summary>
+        /// Accurate mode segmentation suitable for general-purpose tokenization.
+        /// </summary>
         Cut,
+
+        /// <summary>
+        /// Search mode segmentation that produces finer-grained tokens for indexing and search.
+        /// </summary>
         Search,
+
+        /// <summary>
+        /// Full mode segmentation that returns as many possible tokens as can be matched.
+        /// </summary>
         Full,
+
+        /// <summary>
+        /// Part-of-speech tagging mode that returns tokens in <c>"word/tag"</c> form.
+        /// </summary>
         Tag
     }
 
@@ -160,7 +181,6 @@ namespace OpenccJiebaLib
         /// <returns>
         /// An integer representing the native ABI version.
         /// </returns>
-        /// <p>@Since v1.2.0</p>
         public static int GetNativeAbiNumber()
         {
             return (int)OpenccJiebaNative.opencc_jieba_abi_number();
@@ -178,7 +198,6 @@ namespace OpenccJiebaLib
         /// <returns>
         /// A semantic version string (<c>x.y.z</c>) reported by the native library.
         /// </returns>
-        /// <p>@Since v1.2.0</p>
         public static string GetNativeVersionString()
         {
             return Utf8BytesToString(OpenccJiebaNative.opencc_jieba_version_string());
@@ -431,7 +450,6 @@ namespace OpenccJiebaLib
         /// Search mode may produce finer-grained tokens suitable for indexing or searching.
         /// </remarks>
         /// <exception cref="ObjectDisposedException">If the instance has been disposed.</exception>
-        /// <p>@Since v1.2.0</p>
         public string[] JiebaCutForSearch(string input, bool hmm)
         {
             if (_disposed) throw new ObjectDisposedException(nameof(OpenccJieba));
@@ -478,7 +496,6 @@ namespace OpenccJiebaLib
         /// Full mode attempts to return all possible words in the sentence.
         /// </remarks>
         /// <exception cref="ObjectDisposedException">If the instance has been disposed.</exception>
-        /// <p>@Since v1.2.0</p>
         public string[] JiebaCutAll(string input)
         {
             if (_disposed) throw new ObjectDisposedException(nameof(OpenccJieba));
@@ -530,7 +547,6 @@ namespace OpenccJiebaLib
         /// suitable for linguistic analysis.
         /// </remarks>
         /// <exception cref="ObjectDisposedException">If the instance has been disposed.</exception>
-        /// <p>@Since v1.2.0</p>
         public JiebaTagItem[] JiebaTag(string input, bool hmm)
         {
             if (_disposed) throw new ObjectDisposedException(nameof(OpenccJieba));
@@ -581,7 +597,6 @@ namespace OpenccJiebaLib
         /// Suitable for display, logging, or CLI output.
         /// </remarks>
         /// <exception cref="ObjectDisposedException">If the instance has been disposed.</exception>
-        /// <p>@Since v1.2.0</p>
         public string[] JiebaTagAsString(string input, bool hmm)
         {
             if (_disposed) throw new ObjectDisposedException(nameof(OpenccJieba));
@@ -604,18 +619,29 @@ namespace OpenccJiebaLib
         }
 
         /// <summary>
-        /// Performs Chinese word segmentation and joins the result with a delimiter.
+        /// Performs Jieba accurate-mode segmentation and joins the resulting tokens into a single string.
         /// </summary>
-        /// <param name="input">The input string to segment.</param>
-        /// <param name="hmm">Whether to use the Hidden Markov Model (HMM) for segmentation.</param>
-        /// <param name="delimiter">The delimiter to use for joining the segmented words.</param>
-        /// <returns>A single string with segmented words joined by the delimiter.</returns>
-        /// <exception cref="ObjectDisposedException">If the instance has been disposed.</exception>
+        /// <param name="input">The input text to segment.</param>
+        /// <param name="hmm">
+        /// Whether to enable Hidden Markov Model (HMM) support for unknown-word recognition.
+        /// </param>
+        /// <param name="delimiter">
+        /// The delimiter used to join the segmented tokens.
+        /// If <c>null</c>, it is treated as an empty string.
+        /// </param>
+        /// <returns>
+        /// A single string containing the segmented tokens joined by <paramref name="delimiter"/>.
+        /// Returns an empty string if <paramref name="input"/> is null or empty.
+        /// </returns>
+        /// <exception cref="ObjectDisposedException">
+        /// Thrown if this instance has been disposed.
+        /// </exception>
         /// <remarks>
-        /// ⚠️ Deprecated. Use <see cref="SegmentJoin(string,SegmentMode,bool,string)"/> instead.
+        /// This method is deprecated. Use <see cref="SegmentJoin(string, SegmentMode, bool, string)"/> instead.
+        /// <para/>
         /// Equivalent to:
         /// <code>
-        /// SegmentJoin(input, SegmentMode.Cut, delimiter, hmm)
+        /// SegmentJoin(input, SegmentMode.Cut, hmm, delimiter)
         /// </code>
         /// </remarks>
         [Obsolete("JiebaCutAndJoin is deprecated. Use SegmentJoin(input, SegmentMode.Cut, hmm, delimiter) instead.")]
@@ -626,15 +652,27 @@ namespace OpenccJiebaLib
         }
 
         /// <summary>
-        /// Performs segmentation or tagging based on the specified mode.
+        /// Performs segmentation or part-of-speech tagging using the specified <see cref="SegmentMode"/>.
         /// </summary>
-        /// <param name="input">Input text.</param>
-        /// <param name="mode">Segmentation mode.</param>
-        /// <param name="hmm">Enable HMM (if applicable).</param>
+        /// <param name="input">The input text to process.</param>
+        /// <param name="mode">The segmentation or tagging mode to apply.</param>
+        /// <param name="hmm">
+        /// Whether to enable Hidden Markov Model (HMM) support when applicable.
+        /// This parameter is used by <see cref="SegmentMode.Cut"/>, <see cref="SegmentMode.Search"/>,
+        /// and <see cref="SegmentMode.Tag"/>, and is ignored by <see cref="SegmentMode.Full"/>.
+        /// </param>
         /// <returns>
-        /// Segmented tokens or tagged tokens in "word/tag" format.
+        /// An array of tokens produced by the selected mode.
+        /// For <see cref="SegmentMode.Tag"/>, each element is returned in <c>"word/tag"</c> format.
+        /// Returns <see cref="Array.Empty{String}"/> if <paramref name="input"/> is null or empty.
         /// </returns>
-        /// <p>@Since v1.2.0</p>
+        /// <exception cref="ObjectDisposedException">
+        /// Thrown if this instance has been disposed.
+        /// </exception>
+        /// <remarks>
+        /// Use <see cref="SegmentJoin(string, SegmentMode, bool, string)"/> when a single joined string
+        /// is preferred for display, UI, or CLI output.
+        /// </remarks>
         public string[] Segment(string input, SegmentMode mode, bool hmm = true)
         {
             if (_disposed) throw new ObjectDisposedException(nameof(OpenccJieba));
@@ -661,57 +699,40 @@ namespace OpenccJiebaLib
             }
         }
 
-
         /// <summary>
-        /// Performs segmentation or part-of-speech tagging on the input text and returns a single joined string.
+        /// Performs segmentation or part-of-speech tagging on the input text and returns the result as a single joined string.
         /// </summary>
-        /// <param name="input">Input text to segment or tag.</param>
+        /// <param name="input">The input text to process.</param>
         /// <param name="mode">
-        /// Segmentation mode:
+        /// The segmentation or tagging mode to apply:
         /// <list type="bullet">
-        /// <item><description><see cref="SegmentMode.Cut"/> - Accurate mode (default Jieba cut).</description></item>
-        /// <item><description><see cref="SegmentMode.Search"/> - Search engine mode (finer granularity).</description></item>
-        /// <item><description><see cref="SegmentMode.Full"/> - Full mode (all possible tokens).</description></item>
-        /// <item><description><see cref="SegmentMode.Tag"/> - Part-of-speech tagging mode.</description></item>
+        /// <item><description><see cref="SegmentMode.Cut"/> - accurate mode segmentation.</description></item>
+        /// <item><description><see cref="SegmentMode.Search"/> - finer-grained segmentation for search and indexing.</description></item>
+        /// <item><description><see cref="SegmentMode.Full"/> - full mode segmentation.</description></item>
+        /// <item><description><see cref="SegmentMode.Tag"/> - part-of-speech tagging mode.</description></item>
         /// </list>
         /// </param>
         /// <param name="hmm">
-        /// Whether to enable Hidden Markov Model (HMM).
-        /// Only applicable to <see cref="SegmentMode.Cut"/>, <see cref="SegmentMode.Search"/>, and <see cref="SegmentMode.Tag"/>.
-        /// Ignored in <see cref="SegmentMode.Full"/>.
+        /// Whether to enable Hidden Markov Model (HMM) support when applicable.
+        /// This parameter is used by <see cref="SegmentMode.Cut"/>, <see cref="SegmentMode.Search"/>,
+        /// and <see cref="SegmentMode.Tag"/>, and is ignored by <see cref="SegmentMode.Full"/>.
         /// </param>
         /// <param name="delimiter">
-        /// The delimiter used to join tokens. Defaults to a single space (<c>" "</c>).
-        /// If <c>null</c>, it will be treated as an empty string.
+        /// The delimiter used to join the output tokens. Defaults to a single space.
+        /// If <c>null</c>, it is treated as an empty string.
         /// </param>
         /// <returns>
-        /// A single string containing segmented tokens joined by <paramref name="delimiter"/>.
-        /// <para/>
-        /// Behavior by mode:
-        /// <list type="bullet">
-        /// <item>
-        /// <description>
-        /// For segmentation modes (<see cref="SegmentMode.Cut"/>, <see cref="SegmentMode.Search"/>, <see cref="SegmentMode.Full"/>):
-        /// returns tokens joined by the delimiter.
-        /// </description>
-        /// </item>
-        /// <item>
-        /// <description>
-        /// For <see cref="SegmentMode.Tag"/>:
-        /// returns tokens in <c>"word/tag"</c> format, joined by the delimiter.
-        /// </description>
-        /// </item>
-        /// </list>
-        /// Returns an empty string if the input is null/empty or no tokens are produced.
+        /// A single string containing the processed tokens joined by <paramref name="delimiter"/>.
+        /// For <see cref="SegmentMode.Tag"/>, tokens are formatted as <c>"word/tag"</c>.
+        /// Returns an empty string if <paramref name="input"/> is null or empty, or if no tokens are produced.
         /// </returns>
         /// <exception cref="ObjectDisposedException">
-        /// Thrown if the instance has already been disposed.
+        /// Thrown if this instance has been disposed.
         /// </exception>
         /// <remarks>
-        /// This method is optimized for UI and CLI scenarios where a single formatted string output is preferred.
-        /// For structured results, use <see cref="Segment(string, SegmentMode, bool)"/> instead.
+        /// This method is intended for UI, display, and CLI scenarios where a single formatted string is preferred.
+        /// Use <see cref="Segment(string, SegmentMode, bool)"/> when structured token output is needed.
         /// </remarks>
-        /// <p>@Since v1.2.0</p>
         public string SegmentJoin(
             string input,
             SegmentMode mode,
@@ -772,7 +793,8 @@ namespace OpenccJiebaLib
         /// If the value is less than or equal to zero, no keywords are returned.
         /// </param>
         /// <param name="allowedPos">
-        /// Optional space-separated POS filter list, for example <c>"n nr ns nt nz v vn"</c>.
+        /// Optional space-separated list of allowed part-of-speech tags,
+        /// for example <c>"n nr ns nt nz v vn"</c>.
         /// Pass <see cref="string.Empty"/> to disable POS filtering.
         /// </param>
         /// <returns>
@@ -812,7 +834,8 @@ namespace OpenccJiebaLib
         /// If the value is less than or equal to zero, no keywords are returned.
         /// </param>
         /// <param name="allowedPos">
-        /// Optional space-separated POS filter list, for example <c>"n nr ns nt nz v vn"</c>.
+        /// Optional space-separated list of allowed part-of-speech tags,
+        /// for example <c>"n nr ns nt nz v vn"</c>.
         /// Pass <see cref="string.Empty"/> to disable POS filtering.
         /// </param>
         /// <returns>
@@ -856,7 +879,8 @@ namespace OpenccJiebaLib
         /// </param>
         /// <param name="algorithm">Keyword extraction algorithm to use.</param>
         /// <param name="allowedPos">
-        /// Optional space-separated POS filter list, for example <c>"n nr ns nt nz v vn"</c>.
+        /// Optional space-separated list of allowed part-of-speech tags,
+        /// for example <c>"n nr ns nt nz v vn"</c>.
         /// Pass <see cref="string.Empty"/> to disable POS filtering.
         /// </param>
         /// <returns>
@@ -865,7 +889,6 @@ namespace OpenccJiebaLib
         /// </returns>
         /// <exception cref="ObjectDisposedException">If the instance has been disposed.</exception>
         /// <exception cref="InvalidOperationException">If the native instance is not initialized.</exception>
-        /// <p>@Since v1.2.0</p>
         public string[] JiebaKeywordExtract(
             string input,
             int topK,
@@ -890,7 +913,8 @@ namespace OpenccJiebaLib
         /// Keyword extraction algorithm to use.
         /// </param>
         /// <param name="allowedPos">
-        /// Optional space-separated POS filter list, for example <c>"n nr ns nt nz v vn"</c>.
+        /// Optional space-separated list of allowed part-of-speech tags,
+        /// for example <c>"n nr ns nt nz v vn"</c>.
         /// Pass <see cref="string.Empty"/> to disable POS filtering.
         /// </param>
         /// <returns>
@@ -969,7 +993,7 @@ namespace OpenccJiebaLib
         /// are also accepted).
         /// </param>
         /// <param name="allowedPos">
-        /// Optional UTF-8 space-separated part-of-speech filter string,
+        /// Optional space-separated list of allowed part-of-speech tags,
         /// for example <c>"n nr ns nt nz v vn"</c>.
         /// Pass <see cref="string.Empty"/> to disable POS filtering.
         /// </param>
@@ -1034,7 +1058,7 @@ namespace OpenccJiebaLib
         /// Keyword extraction algorithm to use.
         /// </param>
         /// <param name="allowedPos">
-        /// Optional UTF-8 space-separated part-of-speech filter string,
+        /// Optional space-separated list of allowed part-of-speech tags,
         /// for example <c>"n nr ns nt nz v vn"</c>.
         /// Pass <see cref="string.Empty"/> to disable POS filtering.
         /// </param>
@@ -1057,7 +1081,6 @@ namespace OpenccJiebaLib
         /// <exception cref="InvalidOperationException">
         /// Thrown if the native instance is not initialized.
         /// </exception>
-        /// <p>@Since v1.2.0</p>
         public (string[] keywords, double[] weights) JiebaExtractKeywordsWeights(
             string input,
             int topK,
@@ -1074,7 +1097,7 @@ namespace OpenccJiebaLib
         /// <param name="input">Input text from which keywords will be extracted.</param>
         /// <param name="topK">Maximum number of keywords to return.</param>
         /// <param name="allowedPos">
-        /// Optional UTF-8 space-separated part-of-speech filter string,
+        /// Optional space-separated list of allowed part-of-speech tags,
         /// for example <c>"n nr ns nt nz v vn"</c>.
         /// Pass <see cref="string.Empty"/> to disable POS filtering.
         /// </param>
@@ -1096,7 +1119,7 @@ namespace OpenccJiebaLib
         /// <param name="input">Input text from which keywords will be extracted.</param>
         /// <param name="topK">Maximum number of keywords to return.</param>
         /// <param name="allowedPos">
-        /// Optional UTF-8 space-separated part-of-speech filter string,
+        /// Optional space-separated list of allowed part-of-speech tags,
         /// for example <c>"n nr ns nt nz v vn"</c>.
         /// Pass <see cref="string.Empty"/> to disable POS filtering.
         /// </param>
