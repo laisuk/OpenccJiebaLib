@@ -122,15 +122,59 @@ using (var openccJieba = new OpenccJieba())
 
 If initialization fails or a native error occurs, an `InvalidOperationException` is thrown.
 
+---
+
 ## API Overview
 
-* `Convert(string input, string config, bool punctuation = false)`
-* `Convert(string input, OpenccConfig configId, bool punctuation = false)`
-* `JiebaCut(string input, bool hmm)`
-* `JiebaCutAndJoin(string input, bool hmm, string delimiter)`
-* `JiebaKeywordExtractTfidf(string input, int topK)`
-* `JiebaKeywordExtractTextRank(string input, int topK)`
-* `JiebaExtractKeywordsWeights(string input, int topK, string method)`
+### Conversion
+
+- `Convert(string input, string config, bool punctuation = false)`
+- `Convert(string input, OpenccConfig configId, bool punctuation = false)`
+
+---
+
+### Segmentation & Tagging
+
+- `Segment(string input, SegmentMode mode, bool hmm = true)`
+- `SegmentJoin(string input, SegmentMode mode, bool hmm = true, string delimiter = " ")`
+
+Legacy (deprecated):
+
+- `JiebaCutAndJoin(string input, bool hmm, string delimiter)`
+
+Low-level methods:
+
+- `JiebaCut(string input, bool hmm)`
+- `JiebaCutForSearch(string input, bool hmm)`
+- `JiebaCutAll(string input)`
+- `JiebaTag(string input, bool hmm)`
+- `JiebaTagAsString(string input, bool hmm)`
+
+---
+
+### Keyword Extraction
+
+- `JiebaKeywordExtractTfidf(string input, int topK)`
+- `JiebaKeywordExtractTextRank(string input, int topK)`
+
+With POS filtering:
+
+- `JiebaKeywordExtractTfidf(string input, int topK, string allowedPos)`
+- `JiebaKeywordExtractTextRank(string input, int topK, string allowedPos)`
+
+Weighted results:
+
+- `JiebaExtractKeywordsWeights(string input, int topK, string method)`
+- `JiebaExtractKeywordsWeights(string input, int topK, string method, string allowedPos)`
+
+---
+
+### Utilities
+
+- `GetNativeAbiNumber()`
+- `GetNativeVersionString()`
+
+---
 
 ## Troubleshooting
 
@@ -151,6 +195,8 @@ If initialization fails or a native error occurs, an `InvalidOperationException`
 ```bash
 xattr -dr com.apple.quarantine libopencc_jieba_capi.dylib
 ```
+
+---
 
 ## License
 
