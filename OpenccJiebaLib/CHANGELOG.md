@@ -6,6 +6,15 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.2.1] - 2026-03-24
+
+### Fixed
+
+- Added missing XML documentation comments for several public APIs.
+- Improved IntelliSense descriptions for segmentation and tagging methods.
+
+---
+
 ## [1.2.0] - 2026-03-23
 
 ### Added

@@ -431,6 +431,7 @@ namespace OpenccJiebaLib
         /// Search mode may produce finer-grained tokens suitable for indexing or searching.
         /// </remarks>
         /// <exception cref="ObjectDisposedException">If the instance has been disposed.</exception>
+        /// <p>@Since v1.2.0</p>
         public string[] JiebaCutForSearch(string input, bool hmm)
         {
             if (_disposed) throw new ObjectDisposedException(nameof(OpenccJieba));
@@ -477,6 +478,7 @@ namespace OpenccJiebaLib
         /// Full mode attempts to return all possible words in the sentence.
         /// </remarks>
         /// <exception cref="ObjectDisposedException">If the instance has been disposed.</exception>
+        /// <p>@Since v1.2.0</p>
         public string[] JiebaCutAll(string input)
         {
             if (_disposed) throw new ObjectDisposedException(nameof(OpenccJieba));
@@ -528,6 +530,7 @@ namespace OpenccJiebaLib
         /// suitable for linguistic analysis.
         /// </remarks>
         /// <exception cref="ObjectDisposedException">If the instance has been disposed.</exception>
+        /// <p>@Since v1.2.0</p>
         public JiebaTagItem[] JiebaTag(string input, bool hmm)
         {
             if (_disposed) throw new ObjectDisposedException(nameof(OpenccJieba));
@@ -578,6 +581,7 @@ namespace OpenccJiebaLib
         /// Suitable for display, logging, or CLI output.
         /// </remarks>
         /// <exception cref="ObjectDisposedException">If the instance has been disposed.</exception>
+        /// <p>@Since v1.2.0</p>
         public string[] JiebaTagAsString(string input, bool hmm)
         {
             if (_disposed) throw new ObjectDisposedException(nameof(OpenccJieba));
@@ -630,6 +634,7 @@ namespace OpenccJiebaLib
         /// <returns>
         /// Segmented tokens or tagged tokens in "word/tag" format.
         /// </returns>
+        /// <p>@Since v1.2.0</p>
         public string[] Segment(string input, SegmentMode mode, bool hmm = true)
         {
             if (_disposed) throw new ObjectDisposedException(nameof(OpenccJieba));
@@ -706,6 +711,7 @@ namespace OpenccJiebaLib
         /// This method is optimized for UI and CLI scenarios where a single formatted string output is preferred.
         /// For structured results, use <see cref="Segment(string, SegmentMode, bool)"/> instead.
         /// </remarks>
+        /// <p>@Since v1.2.0</p>
         public string SegmentJoin(
             string input,
             SegmentMode mode,
@@ -859,6 +865,7 @@ namespace OpenccJiebaLib
         /// </returns>
         /// <exception cref="ObjectDisposedException">If the instance has been disposed.</exception>
         /// <exception cref="InvalidOperationException">If the native instance is not initialized.</exception>
+        /// <p>@Since v1.2.0</p>
         public string[] JiebaKeywordExtract(
             string input,
             int topK,
@@ -1050,6 +1057,7 @@ namespace OpenccJiebaLib
         /// <exception cref="InvalidOperationException">
         /// Thrown if the native instance is not initialized.
         /// </exception>
+        /// <p>@Since v1.2.0</p>
         public (string[] keywords, double[] weights) JiebaExtractKeywordsWeights(
             string input,
             int topK,

@@ -34,16 +34,17 @@
         <NoWarn>$(NoWarn);1591</NoWarn>
 
         <!-- Versioning -->
-        <AssemblyVersion>1.2.0.0</AssemblyVersion>
-        <FileVersion>1.2.0.0</FileVersion>
-        <Version>1.2.0</Version>
+        <AssemblyVersion>1.2.1.0</AssemblyVersion>
+        <FileVersion>1.2.1.0</FileVersion>
+        <Version>1.2.1</Version>
 
-        <PackageReleaseNotes>v1.2.0
+        <PackageReleaseNotes>v1.2.1
             - Extracted native interop codes into a dedicated native class
             - Fixed ABI mismatch in C# P/Invoke by using UnmanagedType.I1 for Rust bool parameters
             - Added OpenccConfig enum for conversion configuration
             - Added Jieba CutForSearch/CutAll/Tag functions
             - Added POS Tag in Jieba Keyword Extractions
+            - Update native to v0.7.4
         </PackageReleaseNotes>
 
         <!-- Optional: helpful for deterministic CI builds -->
