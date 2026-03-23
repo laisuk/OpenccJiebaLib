@@ -705,7 +705,8 @@ namespace OpenccJiebaLib
         }
 
         /// <summary>
-        /// Extracts keywords from the input text using the Jieba TextRank algorithm.
+        /// Extracts keywords from the input text using the Jieba TextRank algorithm,
+        /// with optional part-of-speech filtering.
         /// </summary>
         /// <param name="input">
         /// Input text from which keywords will be extracted.
@@ -713,6 +714,10 @@ namespace OpenccJiebaLib
         /// <param name="topK">
         /// Maximum number of keywords to return.
         /// If the value is less than or equal to zero, no keywords are returned.
+        /// </param>
+        /// <param name="allowedPos">
+        /// Optional space-separated POS filter list, for example <c>"n nr ns nt nz v vn"</c>.
+        /// Pass <see cref="string.Empty"/> to disable POS filtering.
         /// </param>
         /// <returns>
         /// An array of extracted keywords ordered by relevance (highest first).
@@ -723,43 +728,25 @@ namespace OpenccJiebaLib
         /// TextRank is a graph-based ranking algorithm that does not rely on
         /// term frequency statistics and is suitable for short or well-structured texts.
         ///
+        /// <para>
+        /// If <paramref name="allowedPos"/> is provided, only tokens matching the specified
+        /// part-of-speech tags are considered during extraction.
+        /// </para>
+        ///
+        /// <para>
         /// This method uses the native OpenCC-Jieba instance owned by this object.
+        /// </para>
         /// </remarks>
         /// <exception cref="ObjectDisposedException">If the instance has been disposed.</exception>
         /// <exception cref="InvalidOperationException">If the native instance is not initialized.</exception>
-        public string[] JiebaKeywordExtractTextRank(string input, int topK)
+        public string[] JiebaKeywordExtractTextRank(string input, int topK, string allowedPos = "")
         {
-            if (_disposed) throw new ObjectDisposedException(nameof(OpenccJieba));
-
-            if (string.IsNullOrEmpty(input) || topK <= 0)
-                return Array.Empty<string>();
-
-            if (_openccInstance == IntPtr.Zero)
-                throw new InvalidOperationException("Native instance is not initialized or has been disposed.");
-
-            byte[] inputBytes = null;
-            var result = IntPtr.Zero;
-
-            try
-            {
-                RentUtf8Z(input, out inputBytes);
-
-                result = OpenccJiebaNative.opencc_jieba_keywords(
-                    _openccInstance, inputBytes, (UIntPtr)topK, TextrankMethodBytes);
-
-                return result == IntPtr.Zero ? Array.Empty<string>() : MarshalNullTerminatedStringArray(result);
-            }
-            finally
-            {
-                ReturnRented(inputBytes);
-
-                if (result != IntPtr.Zero)
-                    OpenccJiebaNative.opencc_jieba_free_string_array(result);
-            }
+            return JiebaKeywordExtractCore(input, topK, JiebaKeywordAlgorithm.TextRank, allowedPos);
         }
 
         /// <summary>
-        /// Extracts keywords from the input text using the Jieba TF-IDF algorithm.
+        /// Extracts keywords from the input text using the Jieba TF-IDF algorithm,
+        /// with optional part-of-speech filtering.
         /// </summary>
         /// <param name="input">
         /// Input text from which keywords will be extracted.
@@ -767,6 +754,10 @@ namespace OpenccJiebaLib
         /// <param name="topK">
         /// Maximum number of keywords to return.
         /// If the value is less than or equal to zero, no keywords are returned.
+        /// </param>
+        /// <param name="allowedPos">
+        /// Optional space-separated POS filter list, for example <c>"n nr ns nt nz v vn"</c>.
+        /// Pass <see cref="string.Empty"/> to disable POS filtering.
         /// </param>
         /// <returns>
         /// An array of extracted keywords ordered by importance (highest first).
@@ -777,16 +768,92 @@ namespace OpenccJiebaLib
         /// TF-IDF (Term Frequency–Inverse Document Frequency) ranks keywords
         /// based on term frequency and inverse document frequency statistics.
         ///
+        /// <para>
         /// Compared to TextRank, TF-IDF tends to favor frequently occurring terms
         /// and is well-suited for longer or content-heavy texts.
+        /// </para>
         ///
+        /// <para>
+        /// If <paramref name="allowedPos"/> is provided, only tokens matching the specified
+        /// part-of-speech tags are considered during extraction.
+        /// </para>
+        ///
+        /// <para>
+        /// This method uses the native OpenCC-Jieba instance owned by this object.
+        /// </para>
+        /// </remarks>
+        /// <exception cref="ObjectDisposedException">If the instance has been disposed.</exception>
+        /// <exception cref="InvalidOperationException">If the native instance is not initialized.</exception>
+        public string[] JiebaKeywordExtractTfidf(string input, int topK, string allowedPos = "")
+        {
+            return JiebaKeywordExtractCore(input, topK, JiebaKeywordAlgorithm.Tfidf, allowedPos);
+        }
+
+        /// <summary>
+        /// Extracts keywords from the input text using the specified Jieba keyword extraction algorithm,
+        /// with optional part-of-speech filtering.
+        /// </summary>
+        /// <param name="input">Input text from which keywords will be extracted.</param>
+        /// <param name="topK">
+        /// Maximum number of keywords to return.
+        /// If the value is less than or equal to zero, no keywords are returned.
+        /// </param>
+        /// <param name="algorithm">Keyword extraction algorithm to use.</param>
+        /// <param name="allowedPos">
+        /// Optional space-separated POS filter list, for example <c>"n nr ns nt nz v vn"</c>.
+        /// Pass <see cref="string.Empty"/> to disable POS filtering.
+        /// </param>
+        /// <returns>
+        /// An array of extracted keywords ordered by relevance or importance,
+        /// depending on the selected algorithm.
+        /// </returns>
+        /// <exception cref="ObjectDisposedException">If the instance has been disposed.</exception>
+        /// <exception cref="InvalidOperationException">If the native instance is not initialized.</exception>
+        public string[] JiebaKeywordExtract(
+            string input,
+            int topK,
+            JiebaKeywordAlgorithm algorithm,
+            string allowedPos = "")
+        {
+            return JiebaKeywordExtractCore(input, topK, algorithm, allowedPos);
+        }
+
+        /// <summary>
+        /// Extracts keywords from the input text using the specified Jieba keyword extraction algorithm,
+        /// with optional part-of-speech filtering.
+        /// </summary>
+        /// <param name="input">
+        /// Input text from which keywords will be extracted.
+        /// </param>
+        /// <param name="topK">
+        /// Maximum number of keywords to return.
+        /// If the value is less than or equal to zero, no keywords are returned.
+        /// </param>
+        /// <param name="algorithm">
+        /// Keyword extraction algorithm to use.
+        /// </param>
+        /// <param name="allowedPos">
+        /// Optional space-separated POS filter list, for example <c>"n nr ns nt nz v vn"</c>.
+        /// Pass <see cref="string.Empty"/> to disable POS filtering.
+        /// </param>
+        /// <returns>
+        /// An array of extracted keywords ordered by relevance.
+        /// Returns <see cref="Array.Empty{String}"/> if the input is empty
+        /// or if the native extractor returns no result.
+        /// </returns>
+        /// <remarks>
         /// This method uses the native OpenCC-Jieba instance owned by this object.
         /// </remarks>
         /// <exception cref="ObjectDisposedException">If the instance has been disposed.</exception>
         /// <exception cref="InvalidOperationException">If the native instance is not initialized.</exception>
-        public string[] JiebaKeywordExtractTfidf(string input, int topK)
+        private string[] JiebaKeywordExtractCore(
+            string input,
+            int topK,
+            JiebaKeywordAlgorithm algorithm,
+            string allowedPos = "")
         {
-            if (_disposed) throw new ObjectDisposedException(nameof(OpenccJieba));
+            if (_disposed)
+                throw new ObjectDisposedException(nameof(OpenccJieba));
 
             if (string.IsNullOrEmpty(input) || topK <= 0)
                 return Array.Empty<string>();
@@ -794,21 +861,32 @@ namespace OpenccJiebaLib
             if (_openccInstance == IntPtr.Zero)
                 throw new InvalidOperationException("Native instance is not initialized or has been disposed.");
 
+            allowedPos = allowedPos ?? string.Empty;
+
             byte[] inputBytes = null;
+            byte[] allowedPosBytes = null;
             var result = IntPtr.Zero;
 
             try
             {
                 RentUtf8Z(input, out inputBytes);
+                RentUtf8Z(allowedPos, out allowedPosBytes);
 
-                result = OpenccJiebaNative.opencc_jieba_keywords(
-                    _openccInstance, inputBytes, (UIntPtr)topK, TfidfMethodBytes);
+                result = OpenccJiebaNative.opencc_jieba_keywords_pos(
+                    _openccInstance,
+                    inputBytes,
+                    (UIntPtr)topK,
+                    GetKeywordMethodBytes(algorithm),
+                    allowedPosBytes);
 
-                return result == IntPtr.Zero ? Array.Empty<string>() : MarshalNullTerminatedStringArray(result);
+                return result == IntPtr.Zero
+                    ? Array.Empty<string>()
+                    : MarshalNullTerminatedStringArray(result);
             }
             finally
             {
                 ReturnRented(inputBytes);
+                ReturnRented(allowedPosBytes);
 
                 if (result != IntPtr.Zero)
                     OpenccJiebaNative.opencc_jieba_free_string_array(result);
@@ -817,7 +895,8 @@ namespace OpenccJiebaLib
 
         /// <summary>
         /// Extracts top keywords and their corresponding weights from the input text
-        /// using the specified Jieba keyword extraction method.
+        /// using the specified Jieba keyword extraction method,
+        /// with optional part-of-speech filtering.
         /// </summary>
         /// <param name="input">
         /// Input text from which keywords will be extracted.
@@ -831,6 +910,168 @@ namespace OpenccJiebaLib
         /// Common values include <c>"tfidf"</c> and <c>"textrank"</c>
         /// (aliases such as <c>"tf-idf"</c>, <c>"tf_idf"</c>, <c>"text-rank"</c>, <c>"text_rank"</c>
         /// are also accepted).
+        /// </param>
+        /// <param name="allowedPos">
+        /// Optional UTF-8 space-separated part-of-speech filter string,
+        /// for example <c>"n nr ns nt nz v vn"</c>.
+        /// Pass <see cref="string.Empty"/> to disable POS filtering.
+        /// </param>
+        /// <returns>
+        /// A tuple containing:
+        /// <list type="bullet">
+        ///   <item><description><c>keywords</c>: extracted keywords ordered by relevance (highest first)</description></item>
+        ///   <item><description><c>weights</c>: keyword weights aligned by index with <c>keywords</c></description></item>
+        /// </list>
+        /// Returns empty arrays if <paramref name="input"></paramref> is empty or <paramref name="topK"></paramref> is not positive.
+        /// </returns>
+        /// <remarks>
+        /// <para>
+        /// This overload accepts a string method name for compatibility with existing code and UI inputs.
+        /// </para>
+        /// <para>
+        /// The method name is parsed into a strongly typed <see cref="JiebaKeywordAlgorithm"/>
+        /// before calling the native API.
+        /// </para>
+        /// </remarks>
+        /// <exception cref="ObjectDisposedException">
+        /// Thrown if this instance has been disposed.
+        /// </exception>
+        /// <exception cref="ArgumentNullException">
+        /// Thrown if <paramref name="method"></paramref> is <c>null</c>.
+        /// </exception>
+        /// <exception cref="ArgumentException">
+        /// Thrown if <paramref name="method"></paramref> is empty or not a supported algorithm name.
+        /// </exception>
+        /// <exception cref="InvalidOperationException">
+        /// Thrown if the native instance is not initialized or has been disposed,
+        /// or if the native keyword extraction call fails.
+        /// </exception>
+        public (string[] keywords, double[] weights) JiebaExtractKeywordsWeights(
+            string input,
+            int topK,
+            string method,
+            string allowedPos = "")
+        {
+            if (method == null)
+                throw new ArgumentNullException(nameof(method));
+            if (method.Length == 0)
+                throw new ArgumentException("Method must be non-empty.", nameof(method));
+
+            return !KeywordAlgorithmExtensions.TryParse(method, out var algorithm)
+                ? throw new ArgumentException("Invalid keyword algorithm: " + method, nameof(method))
+                : JiebaExtractKeywordsWeightsCore(input, topK, algorithm, allowedPos);
+        }
+
+        /// <summary>
+        /// Extracts keywords and their corresponding weights using the specified Jieba keyword algorithm,
+        /// with optional part-of-speech filtering.
+        /// </summary>
+        /// <param name="input">
+        /// Input text from which keywords will be extracted.
+        /// </param>
+        /// <param name="topK">
+        /// Maximum number of keywords to return.
+        /// If the value is less than or equal to zero, no keywords are returned.
+        /// </param>
+        /// <param name="algorithm">
+        /// Keyword extraction algorithm to use.
+        /// </param>
+        /// <param name="allowedPos">
+        /// Optional UTF-8 space-separated part-of-speech filter string,
+        /// for example <c>"n nr ns nt nz v vn"</c>.
+        /// Pass <see cref="string.Empty"/> to disable POS filtering.
+        /// </param>
+        /// <returns>
+        /// A tuple containing:
+        /// <list type="bullet">
+        ///   <item><description><c>keywords</c>: extracted keywords ordered by relevance (highest first)</description></item>
+        ///   <item><description><c>weights</c>: keyword weights aligned by index with <c>keywords</c></description></item>
+        /// </list>
+        /// Returns empty arrays if <paramref name="input"></paramref> is empty or <paramref name="topK"></paramref> is not positive.
+        /// </returns>
+        /// <remarks>
+        /// This overload provides a strongly typed alternative to the string-based API.
+        /// The specified <paramref name="algorithm"></paramref> is mapped directly to its canonical
+        /// native representation without parsing.
+        /// </remarks>
+        /// <exception cref="ObjectDisposedException">
+        /// Thrown if the instance has been disposed.
+        /// </exception>
+        /// <exception cref="InvalidOperationException">
+        /// Thrown if the native instance is not initialized.
+        /// </exception>
+        public (string[] keywords, double[] weights) JiebaExtractKeywordsWeights(
+            string input,
+            int topK,
+            JiebaKeywordAlgorithm algorithm,
+            string allowedPos = "")
+        {
+            return JiebaExtractKeywordsWeightsCore(input, topK, algorithm, allowedPos);
+        }
+
+        /// <summary>
+        /// Extracts keywords and their weights using the Jieba TF-IDF algorithm,
+        /// with optional part-of-speech filtering.
+        /// </summary>
+        /// <param name="input">Input text from which keywords will be extracted.</param>
+        /// <param name="topK">Maximum number of keywords to return.</param>
+        /// <param name="allowedPos">
+        /// Optional UTF-8 space-separated part-of-speech filter string,
+        /// for example <c>"n nr ns nt nz v vn"</c>.
+        /// Pass <see cref="string.Empty"/> to disable POS filtering.
+        /// </param>
+        /// <returns>
+        /// A tuple containing extracted keywords and aligned weights.
+        /// </returns>
+        public (string[] keywords, double[] weights) JiebaKeywordExtractTfidfWeights(
+            string input,
+            int topK,
+            string allowedPos = "")
+        {
+            return JiebaExtractKeywordsWeightsCore(input, topK, JiebaKeywordAlgorithm.Tfidf, allowedPos);
+        }
+
+        /// <summary>
+        /// Extracts keywords and their weights using the Jieba TextRank algorithm,
+        /// with optional part-of-speech filtering.
+        /// </summary>
+        /// <param name="input">Input text from which keywords will be extracted.</param>
+        /// <param name="topK">Maximum number of keywords to return.</param>
+        /// <param name="allowedPos">
+        /// Optional UTF-8 space-separated part-of-speech filter string,
+        /// for example <c>"n nr ns nt nz v vn"</c>.
+        /// Pass <see cref="string.Empty"/> to disable POS filtering.
+        /// </param>
+        /// <returns>
+        /// A tuple containing extracted keywords and aligned weights.
+        /// </returns>
+        public (string[] keywords, double[] weights) JiebaKeywordExtractTextRankWeights(
+            string input,
+            int topK,
+            string allowedPos = "")
+        {
+            return JiebaExtractKeywordsWeightsCore(input, topK, JiebaKeywordAlgorithm.TextRank, allowedPos);
+        }
+
+        /// <summary>
+        /// Extracts keywords and their corresponding weights from the input text
+        /// using the specified Jieba keyword extraction algorithm,
+        /// with optional part-of-speech filtering.
+        /// </summary>
+        /// <param name="input">
+        /// Input text from which keywords will be extracted.
+        /// </param>
+        /// <param name="topK">
+        /// Maximum number of keywords to return.
+        /// If the value is less than or equal to zero, no keywords are returned.
+        /// </param>
+        /// <param name="algorithm">
+        /// Keyword extraction algorithm to use.
+        /// </param>
+        /// <param name="allowedPos">
+        /// Optional UTF-8 space-separated part-of-speech filter string,
+        /// for example <c>"n nr ns nt nz v vn"</c>.
+        /// Pass <see cref="string.Empty"/> to disable POS filtering.
         /// </param>
         /// <returns>
         /// A tuple containing:
@@ -850,25 +1091,24 @@ namespace OpenccJiebaLib
         /// Both arrays MUST be released by calling <c>opencc_jieba_free_keywords_and_weights</c>.
         /// </para>
         /// <para>
-        /// For efficiency, the input text is encoded to a pooled UTF-8 buffer (null-terminated) for the native call,
+        /// For efficiency, the input text and <paramref name="allowedPos"/> filter are encoded
+        /// to pooled UTF-8 buffers (null-terminated) for the native call,
         /// and returned to the shared pool in a <c>finally</c> block.
-        /// The keyword method string is passed as a pre-encoded, null-terminated UTF-8 byte sequence.
+        /// The keyword algorithm is passed as a cached, pre-encoded, null-terminated UTF-8 byte sequence.
         /// </para>
         /// </remarks>
         /// <exception cref="ObjectDisposedException">
         /// Thrown if this instance has been disposed.
         /// </exception>
-        /// <exception cref="ArgumentNullException">
-        /// Thrown if <paramref name="method"/> is <c>null</c>.
-        /// </exception>
-        /// <exception cref="ArgumentException">
-        /// Thrown if <paramref name="method"/> is empty or not a supported algorithm name.
-        /// </exception>
         /// <exception cref="InvalidOperationException">
         /// Thrown if the native instance is not initialized or has been disposed,
         /// or if the native keyword extraction call fails.
         /// </exception>
-        public (string[] keywords, double[] weights) JiebaExtractKeywordsWeights(string input, int topK, string method)
+        private (string[] keywords, double[] weights) JiebaExtractKeywordsWeightsCore(
+            string input,
+            int topK,
+            JiebaKeywordAlgorithm algorithm,
+            string allowedPos = "")
         {
             if (_disposed)
                 throw new ObjectDisposedException(nameof(OpenccJieba));
@@ -876,32 +1116,13 @@ namespace OpenccJiebaLib
             if (string.IsNullOrEmpty(input) || topK <= 0)
                 return (Array.Empty<string>(), Array.Empty<double>());
 
-            if (method == null)
-                throw new ArgumentNullException(nameof(method));
-            if (method.Length == 0)
-                throw new ArgumentException("Method must be non-empty.", nameof(method));
-
-            if (!JiebaKeywordAlgorithmExtensions.TryParse(method, out var algorithm))
-                throw new ArgumentException("Invalid keyword algorithm: " + method, nameof(method));
-
             if (_openccInstance == IntPtr.Zero)
                 throw new InvalidOperationException("Native instance is not initialized or has been disposed.");
 
-            // Resolve method bytes from the parsed algorithm (no allocation, no pooling).
-            byte[] methodBytes;
-            switch (algorithm)
-            {
-                case JiebaKeywordAlgorithm.Tfidf:
-                    methodBytes = TfidfMethodBytes;
-                    break;
-                case JiebaKeywordAlgorithm.TextRank:
-                    methodBytes = TextrankMethodBytes;
-                    break;
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(algorithm), algorithm, "Unknown algorithm.");
-            }
+            allowedPos = allowedPos ?? string.Empty;
 
             byte[] inputBytes = null;
+            byte[] allowedPosBytes = null;
 
             var keywordsPtr = IntPtr.Zero;
             var weightsPtr = IntPtr.Zero;
@@ -911,12 +1132,14 @@ namespace OpenccJiebaLib
             {
                 // Pooled UTF-8 + NUL input buffer for native API.
                 RentUtf8Z(input, out inputBytes);
+                RentUtf8Z(allowedPos, out allowedPosBytes);
 
-                var rc = OpenccJiebaNative.opencc_jieba_keywords_and_weights(
+                var rc = OpenccJiebaNative.opencc_jieba_keywords_and_weights_pos(
                     _openccInstance,
                     inputBytes,
                     (UIntPtr)topK,
-                    methodBytes,
+                    GetKeywordMethodBytes(algorithm),
+                    allowedPosBytes,
                     out keywordCountPtr,
                     out keywordsPtr,
                     out weightsPtr
@@ -951,6 +1174,7 @@ namespace OpenccJiebaLib
             finally
             {
                 ReturnRented(inputBytes);
+                ReturnRented(allowedPosBytes);
 
                 // Defensive: free if either pointer is non-zero to avoid edge-case native leaks.
                 if (keywordsPtr != IntPtr.Zero || weightsPtr != IntPtr.Zero)
@@ -962,47 +1186,6 @@ namespace OpenccJiebaLib
                     );
                 }
             }
-        }
-
-        /// <summary>
-        /// Extracts keywords and their corresponding weights using the specified Jieba keyword algorithm.
-        /// </summary>
-        /// <param name="input">
-        /// Input text from which keywords will be extracted.
-        /// </param>
-        /// <param name="topK">
-        /// Maximum number of keywords to return.
-        /// If the value is less than or equal to zero, no keywords are returned.
-        /// </param>
-        /// <param name="algorithm">
-        /// Keyword extraction algorithm to use.
-        /// </param>
-        /// <returns>
-        /// A tuple containing:
-        /// <list type="bullet">
-        ///   <item><description><c>keywords</c>: extracted keywords ordered by relevance (highest first)</description></item>
-        ///   <item><description><c>weights</c>: keyword weights aligned by index with <c>keywords</c></description></item>
-        /// </list>
-        /// Returns empty arrays if <paramref name="input"/> is empty or <paramref name="topK"/> is not positive.
-        /// </returns>
-        /// <remarks>
-        /// This overload provides a strongly typed alternative to the string-based API.
-        /// The specified <paramref name="algorithm"/> is mapped directly to its canonical
-        /// native representation without parsing.
-        /// </remarks>
-        /// <exception cref="ObjectDisposedException">
-        /// Thrown if the instance has been disposed.
-        /// </exception>
-        /// <exception cref="InvalidOperationException">
-        /// Thrown if the native instance is not initialized.
-        /// </exception>
-        public (string[] keywords, double[] weights) JiebaExtractKeywordsWeights(
-            string input,
-            int topK,
-            JiebaKeywordAlgorithm algorithm)
-        {
-            // Canonical mapping, no parsing needed.
-            return JiebaExtractKeywordsWeights(input, topK, algorithm.ToNativeMethod());
         }
 
         #region Helper Methods
@@ -1151,6 +1334,30 @@ namespace OpenccJiebaLib
             }
 
             return list.Count == 0 ? Array.Empty<JiebaTagItem>() : list.ToArray();
+        }
+
+        /// <summary>
+        /// Returns the cached UTF-8, null-terminated native method name bytes
+        /// for the specified Jieba keyword extraction algorithm.
+        /// </summary>
+        /// <param name="algorithm">Keyword extraction algorithm.</param>
+        /// <returns>
+        /// Cached UTF-8 bytes for the native method name.
+        /// </returns>
+        /// <exception cref="ArgumentOutOfRangeException">
+        /// Thrown if <paramref name="algorithm"/> is not a supported value.
+        /// </exception>
+        private static byte[] GetKeywordMethodBytes(JiebaKeywordAlgorithm algorithm)
+        {
+            switch (algorithm)
+            {
+                case JiebaKeywordAlgorithm.Tfidf:
+                    return TfidfMethodBytes;
+                case JiebaKeywordAlgorithm.TextRank:
+                    return TextrankMethodBytes;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(algorithm), algorithm, "Unknown algorithm.");
+            }
         }
 
         #endregion

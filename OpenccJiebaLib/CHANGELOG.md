@@ -6,7 +6,7 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
-## [1.2.0] - 2026-03-20
+## [1.2.0] - 2026-03-23
 
 ### Added
 
@@ -20,6 +20,10 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 - Added `JiebaTagAsString(string, bool)` for tag output in `"word/tag"` string form.
 - Added unified `Segment(string, SegmentMode, bool)` API for cut, search, full, and tag modes.
 - Added unified `SegmentJoin(string, SegmentMode, bool, string)` API for joined segmentation/tagging output.
+- Added `JiebaKeywordAlgorithm` enum for strongly typed Jieba keyword extraction algorithm selection.
+- Added `JiebaKeywordExtract(string, int, JiebaKeywordAlgorithm, string)` unified keyword extraction API with optional POS filtering.
+- Added `JiebaExtractKeywordsWeights(string, int, JiebaKeywordAlgorithm, string)` overload for weighted keyword extraction with strongly typed algorithm selection and optional POS filtering.
+- Added support for native `_pos()` keyword extraction APIs, including `opencc_jieba_keywords_pos` and `opencc_jieba_keywords_and_weights_pos`.
 
 ### Changed
 
@@ -29,7 +33,8 @@ This project adheres to [Semantic Versioning](https://semver.org/).
   configuration is now provided per `Convert()` call.
 - Improved UTF-8 interop by centralizing null-terminated encoding helpers (`*Utf8Z`)
   and reusing pooled buffers where appropriate.
-- Updated `opencc-jieba-rs` C API to v0.7.3.
+- Refactored keyword extraction APIs to use shared internal helpers and support optional POS filtering via space-separated `allowedPos` strings.
+- Updated `opencc-jieba-rs` C API to v0.7.4.
 
 ### Fixed
 

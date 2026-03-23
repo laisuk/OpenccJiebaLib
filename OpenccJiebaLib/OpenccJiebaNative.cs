@@ -256,16 +256,41 @@ namespace OpenccJiebaLib
             byte[] method);
 
         /// <summary>
+        /// Extracts top keywords from text using the specified algorithm,
+        /// with optional part-of-speech filtering.
+        /// </summary>
+        /// <param name="opencc">Pointer to the native instance.</param>
+        /// <param name="input">UTF-8 encoded null-terminated input string.</param>
+        /// <param name="topK">The maximum number of keywords to extract.</param>
+        /// <param name="method">UTF-8 encoded null-terminated string ("tfidf" or "textrank").</param>
+        /// <param name="allowedPos">
+        /// UTF-8 encoded null-terminated, space-separated POS filter string,
+        /// for example <c>"n nr ns nt nz v vn"</c>.
+        /// Pass an empty string to disable POS filtering.
+        /// </param>
+        /// <returns>
+        /// Pointer to a null-terminated array of UTF-8 keyword strings.
+        /// Must be freed via <see cref="opencc_jieba_free_string_array"/>.
+        /// </returns>
+        [DllImport(DllPath, CallingConvention = CallingConvention.Cdecl)]
+        internal static extern IntPtr opencc_jieba_keywords_pos(
+            IntPtr opencc,
+            byte[] input,
+            UIntPtr topK,
+            byte[] method,
+            byte[] allowedPos);
+
+        /// <summary>
         /// Extracts top keywords and their weights from text using the specified algorithm.
         /// </summary>
         /// <param name="instance">Pointer to the native instance.</param>
         /// <param name="input">UTF-8 encoded null-terminated input text.</param>
-        /// <param name="topK">Maximum number of keywords to extract (as UIntPtr).</param>
+        /// <param name="topK">Maximum number of keywords to extract (as <see cref="UIntPtr"/>).</param>
         /// <param name="method">UTF-8 encoded null-terminated string ("tfidf" or "textrank").</param>
         /// <param name="outLen">Output pointer to the number of keywords extracted.</param>
         /// <param name="outKeywords">Output pointer to an array of UTF-8 keyword pointers.</param>
         /// <param name="outWeights">Output pointer to an array of <c>double</c> weights.</param>
-        /// <returns>0 on success, or nonzero error code on failure.</returns>
+        /// <returns><c>0</c> on success, or a negative error code on failure.</returns>
         [DllImport(DllPath, CallingConvention = CallingConvention.Cdecl)]
         internal static extern int opencc_jieba_keywords_and_weights(
             IntPtr instance,
@@ -277,11 +302,41 @@ namespace OpenccJiebaLib
             out IntPtr outWeights);
 
         /// <summary>
-        /// Frees keyword and weight arrays previously allocated by <see cref="opencc_jieba_keywords_and_weights"/>.
+        /// Extracts top keywords and their weights from text using the specified algorithm,
+        /// with optional part-of-speech filtering.
+        /// </summary>
+        /// <param name="instance">Pointer to the native instance.</param>
+        /// <param name="input">UTF-8 encoded null-terminated input text.</param>
+        /// <param name="topK">Maximum number of keywords to extract (as <see cref="UIntPtr"/>).</param>
+        /// <param name="method">UTF-8 encoded null-terminated string ("tfidf" or "textrank").</param>
+        /// <param name="allowedPos">
+        /// UTF-8 encoded null-terminated, space-separated POS filter string,
+        /// for example <c>"n nr ns nt nz v vn"</c>.
+        /// Pass an empty string to disable POS filtering.
+        /// </param>
+        /// <param name="outLen">Output pointer to the number of keywords extracted.</param>
+        /// <param name="outKeywords">Output pointer to an array of UTF-8 keyword pointers.</param>
+        /// <param name="outWeights">Output pointer to an array of <c>double</c> weights.</param>
+        /// <returns><c>0</c> on success, or a negative error code on failure.</returns>
+        [DllImport(DllPath, CallingConvention = CallingConvention.Cdecl)]
+        internal static extern int opencc_jieba_keywords_and_weights_pos(
+            IntPtr instance,
+            byte[] input,
+            UIntPtr topK,
+            byte[] method,
+            byte[] allowedPos,
+            out UIntPtr outLen,
+            out IntPtr outKeywords,
+            out IntPtr outWeights);
+
+        /// <summary>
+        /// Frees keyword and weight arrays previously allocated by
+        /// <see cref="opencc_jieba_keywords_and_weights"/> or
+        /// <see cref="opencc_jieba_keywords_and_weights_pos"/>.
         /// </summary>
         /// <param name="keywords">Pointer to keyword array.</param>
         /// <param name="weights">Pointer to weight array.</param>
-        /// <param name="len">Pointer to the integer count of entries.</param>
+        /// <param name="len">Number of elements in both arrays.</param>
         [DllImport(DllPath, CallingConvention = CallingConvention.Cdecl)]
         internal static extern void opencc_jieba_free_keywords_and_weights(
             IntPtr keywords,

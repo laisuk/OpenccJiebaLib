@@ -335,7 +335,7 @@ public sealed class OpenccJiebaTests
         foreach (var s in inputs)
         {
             Assert.IsTrue(
-                JiebaKeywordAlgorithmExtensions.TryParse(s, out var algo),
+                KeywordAlgorithmExtensions.TryParse(s, out var algo),
                 "TryParse should accept: " + s
             );
 
@@ -375,6 +375,125 @@ public sealed class OpenccJiebaTests
             Assert.HasCount(topK, keywords, "Keyword count mismatch for method: " + method);
             Assert.HasCount(topK, weights, "Weight count mismatch for method: " + method);
         }
+    }
+
+    [TestMethod]
+    public void JiebaExtractKeywordsWeights_StringMethod_WithAllowedPos_Works()
+    {
+        // Arrange
+        const string input = "该剧讲述三位男女在平安夜这一天各自的故事。平安夜的0点，横滨山下码头发生枪杀事件。";
+        const int topK = 5;
+        const string allowedPos = "n nr ns nt nz v vn";
+
+        var methods = new[] { "TextRank", "text_rank", "TF-IDF", "tfidf" };
+
+        foreach (var method in methods)
+        {
+            // Act
+            var (keywords, weights) = _openccJieba.JiebaExtractKeywordsWeights(input, topK, method, allowedPos);
+
+            // Assert
+            Assert.IsNotNull(keywords, "Keywords should not be null for method: " + method);
+            Assert.IsNotNull(weights, "Weights should not be null for method: " + method);
+            Assert.HasCount(keywords.Length, weights, "Keywords/weights length mismatch for method: " + method);
+            Assert.IsLessThanOrEqualTo(topK, keywords.Length,
+                "Keyword count should not exceed topK for method: " + method);
+
+            for (var i = 0; i < keywords.Length; i++)
+            {
+                Assert.IsFalse(string.IsNullOrWhiteSpace(keywords[i]),
+                    "Keyword should not be null/empty at index " + i + " for method: " + method);
+            }
+        }
+    }
+
+    [TestMethod]
+    public void JiebaExtractKeywordsWeights_EnumMethod_WithAllowedPos_Works()
+    {
+        // Arrange
+        const string input = "春眠不觉晓，处处闻啼鸟。夜来风雨声，花落知多少。";
+        const int topK = 5;
+        const string allowedPos = "n v vn";
+        var methods = new[]
+        {
+            JiebaKeywordAlgorithm.Tfidf,
+            JiebaKeywordAlgorithm.TextRank
+        };
+
+        foreach (var method in methods)
+        {
+            // Act
+            var (keywords, weights) = _openccJieba.JiebaExtractKeywordsWeights(input, topK, method, allowedPos);
+
+            // Assert
+            Assert.IsNotNull(keywords, "Keywords should not be null for method: " + method);
+            Assert.IsNotNull(weights, "Weights should not be null for method: " + method);
+            Assert.HasCount(keywords.Length, weights, "Keywords/weights length mismatch for method: " + method);
+            Assert.IsLessThanOrEqualTo(topK, keywords.Length,
+                "Keyword count should not exceed topK for method: " + method);
+
+            for (var i = 0; i < keywords.Length; i++)
+            {
+                Assert.IsFalse(string.IsNullOrWhiteSpace(keywords[i]),
+                    "Keyword should not be null/empty at index " + i + " for method: " + method);
+            }
+        }
+    }
+
+    [TestMethod]
+    public void JiebaKeywordExtractTfidfWeights_WithAllowedPos_Works()
+    {
+        // Arrange
+        const string input = "该剧讲述三位男女在平安夜这一天各自的故事。平安夜的0点，横滨山下码头发生枪杀事件。";
+        const int topK = 5;
+        const string allowedPos = "n nr ns nt nz";
+
+        // Act
+        var (keywords, weights) = _openccJieba.JiebaKeywordExtractTfidfWeights(input, topK, allowedPos);
+
+        // Assert
+        Assert.IsNotNull(keywords);
+        Assert.IsNotNull(weights);
+        Assert.HasCount(keywords.Length, weights);
+        Assert.IsLessThanOrEqualTo(topK, keywords.Length);
+    }
+
+    [TestMethod]
+    public void JiebaKeywordExtractTextRankWeights_WithAllowedPos_Works()
+    {
+        // Arrange
+        const string input = "该剧讲述三位男女在平安夜这一天各自的故事。平安夜的0点，横滨山下码头发生枪杀事件。";
+        const int topK = 5;
+        const string allowedPos = "n nr ns nt nz";
+
+        // Act
+        var (keywords, weights) = _openccJieba.JiebaKeywordExtractTextRankWeights(input, topK, allowedPos);
+
+        // Assert
+        Assert.IsNotNull(keywords);
+        Assert.IsNotNull(weights);
+        Assert.HasCount(keywords.Length, weights);
+        Assert.IsLessThanOrEqualTo(topK, keywords.Length);
+    }
+
+    [TestMethod]
+    public void JiebaExtractKeywordsWeights_EnumMethod_DefaultAllowedPos_Works()
+    {
+        // Arrange
+        const string input = "该剧讲述三位男女在平安夜这一天各自的故事。平安夜的0点，横滨山下码头发生枪杀事件。";
+        const int topK = 5;
+
+        // Act
+        var (keywords, weights) = _openccJieba.JiebaExtractKeywordsWeights(
+            input,
+            topK,
+            JiebaKeywordAlgorithm.TextRank);
+
+        // Assert
+        Assert.IsNotNull(keywords);
+        Assert.IsNotNull(weights);
+        Assert.HasCount(keywords.Length, weights);
+        Assert.IsLessThanOrEqualTo(topK, keywords.Length);
     }
 
     [TestMethod]

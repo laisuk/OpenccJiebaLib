@@ -17,7 +17,7 @@ namespace OpenccJiebaLib
     /// <summary>
     /// Helpers for <see cref="JiebaKeywordAlgorithm"/> parsing and native mapping.
     /// </summary>
-    public static class JiebaKeywordAlgorithmExtensions
+    public static class KeywordAlgorithmExtensions
     {
         /// <summary>
         /// Tries to parse a keyword algorithm name (case-insensitive) and common aliases.
