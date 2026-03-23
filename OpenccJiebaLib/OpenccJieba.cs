@@ -656,6 +656,56 @@ namespace OpenccJiebaLib
             }
         }
 
+
+        /// <summary>
+        /// Performs segmentation or part-of-speech tagging on the input text and returns a single joined string.
+        /// </summary>
+        /// <param name="input">Input text to segment or tag.</param>
+        /// <param name="mode">
+        /// Segmentation mode:
+        /// <list type="bullet">
+        /// <item><description><see cref="SegmentMode.Cut"/> - Accurate mode (default Jieba cut).</description></item>
+        /// <item><description><see cref="SegmentMode.Search"/> - Search engine mode (finer granularity).</description></item>
+        /// <item><description><see cref="SegmentMode.Full"/> - Full mode (all possible tokens).</description></item>
+        /// <item><description><see cref="SegmentMode.Tag"/> - Part-of-speech tagging mode.</description></item>
+        /// </list>
+        /// </param>
+        /// <param name="hmm">
+        /// Whether to enable Hidden Markov Model (HMM).
+        /// Only applicable to <see cref="SegmentMode.Cut"/>, <see cref="SegmentMode.Search"/>, and <see cref="SegmentMode.Tag"/>.
+        /// Ignored in <see cref="SegmentMode.Full"/>.
+        /// </param>
+        /// <param name="delimiter">
+        /// The delimiter used to join tokens. Defaults to a single space (<c>" "</c>).
+        /// If <c>null</c>, it will be treated as an empty string.
+        /// </param>
+        /// <returns>
+        /// A single string containing segmented tokens joined by <paramref name="delimiter"/>.
+        /// <para/>
+        /// Behavior by mode:
+        /// <list type="bullet">
+        /// <item>
+        /// <description>
+        /// For segmentation modes (<see cref="SegmentMode.Cut"/>, <see cref="SegmentMode.Search"/>, <see cref="SegmentMode.Full"/>):
+        /// returns tokens joined by the delimiter.
+        /// </description>
+        /// </item>
+        /// <item>
+        /// <description>
+        /// For <see cref="SegmentMode.Tag"/>:
+        /// returns tokens in <c>"word/tag"</c> format, joined by the delimiter.
+        /// </description>
+        /// </item>
+        /// </list>
+        /// Returns an empty string if the input is null/empty or no tokens are produced.
+        /// </returns>
+        /// <exception cref="ObjectDisposedException">
+        /// Thrown if the instance has already been disposed.
+        /// </exception>
+        /// <remarks>
+        /// This method is optimized for UI and CLI scenarios where a single formatted string output is preferred.
+        /// For structured results, use <see cref="Segment(string, SegmentMode, bool)"/> instead.
+        /// </remarks>
         public string SegmentJoin(
             string input,
             SegmentMode mode,
