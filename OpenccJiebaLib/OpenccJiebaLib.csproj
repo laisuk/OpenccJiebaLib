@@ -49,14 +49,17 @@
             - Improved IntelliSense descriptions for segmentation and tagging methods.
         </PackageReleaseNotes>
 
+        <PackageIcon>icon.png</PackageIcon>
+
         <!-- Optional: helpful for deterministic CI builds -->
         <!-- <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild> -->
     </PropertyGroup>
 
-    <!-- Pack README and LICENSE at package root -->
+    <!-- Pack README, LICENSE and icon file at package root -->
     <ItemGroup>
         <None Include="..\README.md" Pack="true" PackagePath="\"/>
         <None Include="..\LICENSE" Pack="true" PackagePath="\"/>
+        <None Include="assets\icon.png" Pack="true" PackagePath="\"/>
     </ItemGroup>
 
     <!-- Pack native assets to runtimes/ paths -->
