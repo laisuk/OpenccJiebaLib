@@ -13,7 +13,7 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 - Added `OpenccConfig` enum for strongly typed OpenCC conversion configuration.
 - Added `Convert(string, OpenccConfig, bool)` overload for type-safe conversion calls.
 - Added `GetNativeAbiNumber` and `GetNativeVersionString`.
-- Added `osx-x64` runtimes.
+- Added `linux-arm64` runtimes.
 - Added `JiebaCutForSearch(string, bool)` for search-mode segmentation.
 - Added `JiebaCutAll(string)` for full-mode segmentation.
 - Added `JiebaTag(string, bool)` for part-of-speech tagging.

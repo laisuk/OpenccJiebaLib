@@ -42,6 +42,8 @@
             - Extracted native interop codes into a dedicated native class
             - Fixed ABI mismatch in C# P/Invoke by using UnmanagedType.I1 for Rust bool parameters
             - Added OpenccConfig enum for conversion configuration
+            - Added Jieba CutForSearch/CutAll/Tag functions
+            - Added POS Tag in Jieba Keyword Extractions
         </PackageReleaseNotes>
 
         <!-- Optional: helpful for deterministic CI builds -->
@@ -59,15 +61,15 @@
         <None Include="runtimes\win-x64\native\opencc_jieba_capi.dll"
               Pack="true"
               PackagePath="runtimes/win-x64/native/"/>
+        <None Include="runtimes\linux-arm64\native\libopencc_jieba_capi.so"
+              Pack="true"
+              PackagePath="runtimes/linux-arm64/native/"/>
         <None Include="runtimes\linux-x64\native\libopencc_jieba_capi.so"
               Pack="true"
               PackagePath="runtimes/linux-x64/native/"/>
         <None Include="runtimes\osx-arm64\native\libopencc_jieba_capi.dylib"
               Pack="true"
-              PackagePath="runtimes/osx-arm64/native/"/>
-        <None Include="runtimes\osx-x64\native\libopencc_jieba_capi.dylib"
-              Pack="true"
-              PackagePath="runtimes/osx-x64/native/"/>
+              PackagePath="runtimes/osx-arm64/native/"/>        
 
         <!-- If any Intel mac builds, include this too -->
         <!--
