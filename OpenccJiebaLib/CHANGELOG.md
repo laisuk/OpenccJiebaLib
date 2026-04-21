@@ -10,7 +10,7 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
-- Added param `separator` in segment mode `tag`
+- Added param `separator` in segment mode `tag` when joined as string
 
 ---
 
