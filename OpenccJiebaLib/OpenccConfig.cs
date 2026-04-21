@@ -9,8 +9,10 @@ namespace OpenccJiebaLib
     /// <summary>
     /// Numeric OpenCC configuration identifiers (opencc_config_t).
     /// These values must match the native enum exactly.
-    /// <p>@Since v1.2.0</p>
     /// </summary>
+    /// <remarks>
+    /// Available in the managed API since version 1.2.0.
+    /// </remarks>
     // NOTE:
     // Enum member names intentionally follow OpenCC canonical identifiers
     // (S2TW, T2HK, etc.) to preserve cross-language consistency.
@@ -75,8 +77,8 @@ namespace OpenccJiebaLib
     /// <remarks>
     /// This class provides utility methods that operate on <see cref="OpenccConfig"/>
     /// without exposing numeric configuration IDs or native OpenCC details.
+    /// Available in the managed API since version 1.2.0.
     /// </remarks>
-    /// <p>@Since v1.2.0</p>
     public static class OpenccConfigExtensions
     {
         /// <summary>

@@ -107,20 +107,46 @@ using OpenccJiebaLib;
 
 using (var openccJieba = new OpenccJieba())
 {
-    string traditional = openccJieba.Convert("汉字转换测试", "s2t");
-    string[] words = openccJieba.JiebaCut("我来到北京清华大学", hmm: true);
+    string traditional = openccJieba.Convert("汉字转换测试", OpenccConfig.S2T);
 
-    string[] keywords = openccJieba.JiebaKeywordExtractTfidf(
-        "这是一个用于关键词提取的测试文本", 5);
+    string[] searchTokens = openccJieba.Segment(
+        "我来到北京清华大学",
+        SegmentMode.Search,
+        hmm: true);
+
+    string tagged = openccJieba.SegmentJoin(
+        "我来到北京清华大学",
+        SegmentMode.Tag,
+        hmm: true,
+        delimiter: " ",
+        separator: "/");
+
+    string[] keywords = openccJieba.JiebaKeywordExtract(
+        "这是一个用于关键词提取的测试文本",
+        5,
+        JiebaKeywordAlgorithm.Tfidf);
 
     var (kw, weights) = openccJieba.JiebaExtractKeywordsWeights(
-        "这是一个用于关键词提取的测试文本", 5, "textrank");
+        "这是一个用于关键词提取的测试文本",
+        5,
+        JiebaKeywordAlgorithm.TextRank);
+
+    int script = openccJieba.ZhoCheck("汉字转换测试");
 }
 ```
 
+String-based overloads are still available for configuration names such as `"s2t"` and keyword methods such as
+`"textrank"`, but the enum-based APIs are recommended for new code.
+
 ## Error Handling
 
-If initialization fails or a native error occurs, an `InvalidOperationException` is thrown.
+Common exception types:
+
+- `InvalidOperationException`: native initialization failures, missing native resources, or native call failures.
+- `ArgumentOutOfRangeException`: invalid enum values passed to `OpenccConfig`, `SegmentMode`, or `JiebaKeywordAlgorithm`
+  based APIs.
+- `ArgumentException`: unsupported string-based config or keyword method inputs where validation is required.
+- `ArgumentNullException`: `null` keyword method passed to `JiebaExtractKeywordsWeights(..., string method, ...)`.
 
 ---
 
@@ -130,6 +156,10 @@ If initialization fails or a native error occurs, an `InvalidOperationException`
 
 - `Convert(string input, string config, bool punctuation = false)`
 - `Convert(string input, OpenccConfig configId, bool punctuation = false)`
+- `OpenccConfig`
+- `OpenccConfigExtensions.IsValidConfig(string name)`
+- `OpenccConfigExtensions.Parse(string name)`
+- `OpenccConfigExtensions.ToCanonicalName(this OpenccConfig config)`
 
 ---
 
@@ -137,6 +167,7 @@ If initialization fails or a native error occurs, an `InvalidOperationException`
 
 - `Segment(string input, SegmentMode mode, bool hmm = true)`
 - `SegmentJoin(string input, SegmentMode mode, bool hmm = true, string delimiter = " ", string separator = "/")`
+- `ZhoCheck(string input)`
 
 Legacy (deprecated):
 
@@ -154,18 +185,19 @@ Low-level methods:
 
 ### Keyword Extraction
 
-- `JiebaKeywordExtractTfidf(string input, int topK)`
-- `JiebaKeywordExtractTextRank(string input, int topK)`
-
-With POS filtering:
-
-- `JiebaKeywordExtractTfidf(string input, int topK, string allowedPos)`
-- `JiebaKeywordExtractTextRank(string input, int topK, string allowedPos)`
+- `JiebaKeywordAlgorithm`
+- `KeywordAlgorithmExtensions.Parse(string value)`
+- `KeywordAlgorithmExtensions.ToNativeMethod(this JiebaKeywordAlgorithm algorithm)`
+- `JiebaKeywordExtract(string input, int topK, JiebaKeywordAlgorithm algorithm, string allowedPos = "")`
+- `JiebaKeywordExtractTfidf(string input, int topK, string allowedPos = "")`
+- `JiebaKeywordExtractTextRank(string input, int topK, string allowedPos = "")`
 
 Weighted results:
 
-- `JiebaExtractKeywordsWeights(string input, int topK, string method)`
-- `JiebaExtractKeywordsWeights(string input, int topK, string method, string allowedPos)`
+- `JiebaExtractKeywordsWeights(string input, int topK, string method, string allowedPos = "")`
+- `JiebaExtractKeywordsWeights(string input, int topK, JiebaKeywordAlgorithm algorithm, string allowedPos = "")`
+- `JiebaKeywordExtractTfidfWeights(string input, int topK, string allowedPos = "")`
+- `JiebaKeywordExtractTextRankWeights(string input, int topK, string allowedPos = "")`
 
 ---
 

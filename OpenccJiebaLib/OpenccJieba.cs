@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Buffers;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
@@ -205,8 +205,6 @@ namespace OpenccJiebaLib
 
         /// <summary>
         /// Converts Chinese text using the specified OpenCC configuration, optionally including punctuation conversion.
-        /// This method validates the instance state, normalizes the configuration (defaulting to <c>"s2t"</c> if unknown),
-        /// and calls the native converter using pooled UTF-8 buffers for efficiency.
         /// </summary>
         /// <param name="input">The input string to convert.</param>
         /// <param name="config">
@@ -217,10 +215,10 @@ namespace OpenccJiebaLib
         /// <returns>The converted string; returns an empty string if <paramref name="input"/> is null or empty.</returns>
         /// <exception cref="ObjectDisposedException">Thrown if this instance has been disposed.</exception>
         /// <exception cref="InvalidOperationException">Thrown if the native instance is not initialized or has been disposed.</exception>
-        /// <exception cref="ArgumentException">
-        /// Thrown if the (normalized) configuration cannot be resolved to a cached byte sequence.
-        /// </exception>
         /// <remarks>
+        /// This overload accepts a string configuration name for compatibility with existing code and user input.
+        /// The name is normalized case-insensitively and mapped to the canonical OpenCC identifier before calling the native API.
+        /// <para/>
         /// Implementation details:
         /// <list type="bullet">
         /// <item>Uses <see cref="ArrayPool{T}"/> to rent a UTF-8 buffer and appends a null terminator for the native API.</item>
@@ -245,39 +243,9 @@ namespace OpenccJiebaLib
 
             // Normalize/validate config with a safe default (case-insensitive).
             if (!OpenccConfigExtensions.TryParseConfig(config, out var configId))
-                configId = OpenccConfig.S2T;
+                configId = OpenccConfigExtensions.DefaultConfig();
 
-            config = configId.ToCanonicalName();
-
-            if (_openccInstance == IntPtr.Zero)
-                throw new InvalidOperationException("Native instance is not initialized or has been disposed.");
-
-            byte[] inputBytes = null;
-            var output = IntPtr.Zero;
-
-            try
-            {
-                // Defensive fallback: should never fail after normalization,
-                // but fall back to default config bytes instead of throwing.
-                if (!EncodedConfigCache.TryGetValue(config, out var configBytes))
-                {
-                    var defaultConfig = OpenccConfigExtensions.DefaultConfig().ToCanonicalName();
-                    configBytes = EncodedConfigCache[defaultConfig];
-                }
-
-                // Pooled UTF-8 + NUL input buffer
-                RentUtf8Z(input, out inputBytes);
-
-                output = OpenccJiebaNative.opencc_jieba_convert(_openccInstance, inputBytes, configBytes, punctuation);
-                return Utf8BytesToString(output);
-            }
-            finally
-            {
-                ReturnRented(inputBytes);
-
-                if (output != IntPtr.Zero)
-                    OpenccJiebaNative.opencc_jieba_free_string(output);
-            }
+            return ConvertCore(input, configId, punctuation);
         }
 
         /// <summary>
@@ -285,20 +253,15 @@ namespace OpenccJiebaLib
         /// optionally including punctuation conversion.
         /// </summary>
         /// <param name="input">The input string to convert.</param>
-        /// <param name="configId">
-        /// The OpenCC configuration identifier (managed enum). If invalid, the method falls back to
-        /// <see cref="OpenccConfig.S2T"/>.
-        /// </param>
+        /// <param name="configId">The OpenCC configuration identifier (managed enum).</param>
         /// <param name="punctuation">Whether to convert punctuation as well.</param>
         /// <returns>The converted string; returns an empty string if <paramref name="input"/> is null or empty.</returns>
         /// <exception cref="ObjectDisposedException">Thrown if this instance has been disposed.</exception>
         /// <exception cref="InvalidOperationException">Thrown if the native instance is not initialized or has been disposed.</exception>
-        /// <exception cref="ArgumentException">
-        /// Thrown if the (normalized) configuration cannot be resolved to a cached byte sequence.
-        /// </exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown if <paramref name="configId"/> is not a valid <see cref="OpenccConfig"/> value.</exception>
         /// <remarks>
-        /// This overload is a convenience wrapper that maps <see cref="OpenccConfig"/> to its canonical
-        /// OpenCC config name (e.g. "s2t", "t2s") and forwards to <see cref="Convert(string,string,bool)"/>.
+        /// This overload avoids parsing string configuration names and is the preferred choice when the configuration
+        /// is already known at compile time.
         /// </remarks>
         /// <example>
         /// <code>
@@ -313,14 +276,7 @@ namespace OpenccJiebaLib
         public string Convert(string input, OpenccConfig configId, bool punctuation = false)
         {
             if (_disposed) throw new ObjectDisposedException(nameof(OpenccJieba));
-            if (string.IsNullOrEmpty(input)) return string.Empty;
-
-            // Normalize/validate configId with a safe default.
-            if (!OpenccConfigExtensions.TryGetConfigName(configId, out _))
-                configId = OpenccConfigExtensions.DefaultConfig();
-
-            // Forward using canonical name; avoids parsing in string overload.
-            return Convert(input, configId.ToCanonicalName(), punctuation);
+            return string.IsNullOrEmpty(input) ? string.Empty : ConvertCore(input, configId, punctuation);
         }
 
         /// <summary>
@@ -647,7 +603,8 @@ namespace OpenccJiebaLib
         /// SegmentJoin(input, SegmentMode.Cut, hmm, delimiter)
         /// </code>
         /// </remarks>
-        [Obsolete("JiebaCutAndJoin is deprecated. Use SegmentJoin(input, SegmentMode.Cut, hmm, delimiter, separator) instead.")]
+        [Obsolete(
+            "JiebaCutAndJoin is deprecated. Use SegmentJoin(input, SegmentMode.Cut, hmm, delimiter, separator) instead.")]
         public string JiebaCutAndJoin(string input, bool hmm, string delimiter)
         {
             // Keep exact behavior mapping to new API
@@ -698,7 +655,7 @@ namespace OpenccJiebaLib
                     return JiebaTagAsString(input, hmm);
 
                 default:
-                    return Array.Empty<string>();
+                    throw new ArgumentOutOfRangeException(nameof(mode), mode, "Unsupported segment mode.");
             }
         }
 
@@ -740,6 +697,7 @@ namespace OpenccJiebaLib
         /// This method is intended for UI, display, and CLI scenarios where a single formatted string is preferred.
         /// Use <see cref="Segment(string, SegmentMode, bool)"/> when structured token output is needed.
         /// </remarks>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown if <paramref name="mode"/> is not a supported <see cref="SegmentMode"/> value.</exception>
         public string SegmentJoin(
             string input,
             SegmentMode mode,
@@ -787,6 +745,40 @@ namespace OpenccJiebaLib
                     var tokens = Segment(input, mode, hmm);
                     return tokens.Length == 0 ? string.Empty : string.Join(delimiter, tokens);
                 }
+            }
+        }
+
+        private string ConvertCore(string input, OpenccConfig configId, bool punctuation)
+        {
+            if (_openccInstance == IntPtr.Zero)
+                throw new InvalidOperationException("Native instance is not initialized or has been disposed.");
+
+            byte[] inputBytes = null;
+            var output = IntPtr.Zero;
+
+            try
+            {
+                var configName = configId.ToCanonicalName();
+
+                // Defensive fallback: should never fail for validated enum values,
+                // but fall back to default config bytes instead of throwing.
+                if (!EncodedConfigCache.TryGetValue(configName, out var configBytes))
+                {
+                    var defaultConfig = OpenccConfigExtensions.DefaultConfig().ToCanonicalName();
+                    configBytes = EncodedConfigCache[defaultConfig];
+                }
+
+                RentUtf8Z(input, out inputBytes);
+
+                output = OpenccJiebaNative.opencc_jieba_convert(_openccInstance, inputBytes, configBytes, punctuation);
+                return Utf8BytesToString(output);
+            }
+            finally
+            {
+                ReturnRented(inputBytes);
+
+                if (output != IntPtr.Zero)
+                    OpenccJiebaNative.opencc_jieba_free_string(output);
             }
         }
 

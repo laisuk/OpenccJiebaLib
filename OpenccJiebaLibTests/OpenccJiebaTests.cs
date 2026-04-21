@@ -1,4 +1,4 @@
-﻿using OpenccJiebaLib;
+using OpenccJiebaLib;
 
 namespace OpenccJiebaLibTests;
 
@@ -533,6 +533,66 @@ public sealed class OpenccJiebaTests
 
         // Assert
         Assert.Contains("Invalid keyword algorithm", ex.Message);
+    }
+
+    [TestMethod]
+    public void Convert_WithInvalidEnumValue_ThrowsArgumentOutOfRangeException()
+    {
+        var invalid = (OpenccConfig)999;
+        ArgumentOutOfRangeException? ex = null;
+
+        try
+        {
+            _openccJieba.Convert("测试文本", invalid);
+            Assert.Fail("Expected ArgumentOutOfRangeException was not thrown.");
+        }
+        catch (ArgumentOutOfRangeException e)
+        {
+            ex = e;
+        }
+
+        Assert.IsNotNull(ex);
+        Assert.AreEqual("config", ex.ParamName);
+    }
+
+    [TestMethod]
+    public void Segment_WithInvalidMode_ThrowsArgumentOutOfRangeException()
+    {
+        var invalid = (SegmentMode)999;
+        ArgumentOutOfRangeException? ex = null;
+
+        try
+        {
+            _openccJieba.Segment("我来到北京清华大学", invalid);
+            Assert.Fail("Expected ArgumentOutOfRangeException was not thrown.");
+        }
+        catch (ArgumentOutOfRangeException e)
+        {
+            ex = e;
+        }
+
+        Assert.IsNotNull(ex);
+        Assert.AreEqual("mode", ex.ParamName);
+    }
+
+    [TestMethod]
+    public void SegmentJoin_WithInvalidMode_ThrowsArgumentOutOfRangeException()
+    {
+        var invalid = (SegmentMode)999;
+        ArgumentOutOfRangeException? ex = null;
+
+        try
+        {
+            _openccJieba.SegmentJoin("我来到北京清华大学", invalid);
+            Assert.Fail("Expected ArgumentOutOfRangeException was not thrown.");
+        }
+        catch (ArgumentOutOfRangeException e)
+        {
+            ex = e;
+        }
+
+        Assert.IsNotNull(ex);
+        Assert.AreEqual("mode", ex.ParamName);
     }
 
     [TestMethod]
