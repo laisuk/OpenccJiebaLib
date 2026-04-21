@@ -136,7 +136,7 @@ If initialization fails or a native error occurs, an `InvalidOperationException`
 ### Segmentation & Tagging
 
 - `Segment(string input, SegmentMode mode, bool hmm = true)`
-- `SegmentJoin(string input, SegmentMode mode, bool hmm = true, string delimiter = " ")`
+- `SegmentJoin(string input, SegmentMode mode, bool hmm = true, string delimiter = " ", string separator = "/")`
 
 Legacy (deprecated):
 
@@ -148,7 +148,7 @@ Low-level methods:
 - `JiebaCutForSearch(string input, bool hmm)`
 - `JiebaCutAll(string input)`
 - `JiebaTag(string input, bool hmm)`
-- `JiebaTagAsString(string input, bool hmm)`
+- `JiebaTagAsString(string input, bool hmm, string separator = "/")`
 
 ---
 

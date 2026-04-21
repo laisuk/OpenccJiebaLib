@@ -34,11 +34,11 @@
         <NoWarn>$(NoWarn);1591</NoWarn>
 
         <!-- Versioning -->
-        <AssemblyVersion>1.2.1.0</AssemblyVersion>
-        <FileVersion>1.2.1.0</FileVersion>
-        <Version>1.2.1</Version>
+        <AssemblyVersion>1.2.2.0</AssemblyVersion>
+        <FileVersion>1.2.2.0</FileVersion>
+        <Version>1.2.2</Version>
 
-        <PackageReleaseNotes>v1.2.1
+        <PackageReleaseNotes>v1.2.2
             - Extracted native interop codes into a dedicated native class
             - Fixed ABI mismatch in C# P/Invoke by using UnmanagedType.I1 for Rust bool parameters
             - Added OpenccConfig enum for conversion configuration

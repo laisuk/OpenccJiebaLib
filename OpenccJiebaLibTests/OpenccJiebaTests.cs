@@ -244,6 +244,20 @@ public sealed class OpenccJiebaTests
     }
 
     [TestMethod]
+    public void JiebaTagAsStringWithSeparator_ShouldReturnFormattedOutput()
+    {
+        const string input = "我来到北京清华大学";
+        const bool hmm = true;
+
+        var result = _openccJieba.JiebaTagAsString(input, hmm, ":");
+
+        CollectionAssert.AreEqual(
+            new[] { "我:r", "来到:v", "北京:ns", "清华大学:nt" },
+            result
+        );
+    }
+
+    [TestMethod]
     public void JiebaKeywordExtractTextRank_Test()
     {
         // Arrange

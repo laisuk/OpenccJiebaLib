@@ -587,6 +587,9 @@ namespace OpenccJiebaLib
         /// <param name="hmm">
         /// Whether to enable HMM-based segmentation.
         /// </param>
+        /// <param name="separator">
+        /// Specify tag separator string (default to "/").
+        /// </param>
         /// <returns>
         /// An array of strings in the format "word/tag".
         /// Returns <see cref="Array.Empty{String}"/> if the input is empty
@@ -597,7 +600,7 @@ namespace OpenccJiebaLib
         /// Suitable for display, logging, or CLI output.
         /// </remarks>
         /// <exception cref="ObjectDisposedException">If the instance has been disposed.</exception>
-        public string[] JiebaTagAsString(string input, bool hmm)
+        public string[] JiebaTagAsString(string input, bool hmm, string separator = "/")
         {
             if (_disposed) throw new ObjectDisposedException(nameof(OpenccJieba));
 
@@ -612,7 +615,7 @@ namespace OpenccJiebaLib
             {
                 // Avoid interpolation overhead in hot path
                 var item = tags[i];
-                result[i] = item.Word + "/" + item.Tag;
+                result[i] = item.Word + separator + item.Tag;
             }
 
             return result;
@@ -637,14 +640,14 @@ namespace OpenccJiebaLib
         /// Thrown if this instance has been disposed.
         /// </exception>
         /// <remarks>
-        /// This method is deprecated. Use <see cref="SegmentJoin(string, SegmentMode, bool, string)"/> instead.
+        /// This method is deprecated. Use <see cref="SegmentJoin(string, SegmentMode, bool, string, string)"/> instead.
         /// <para/>
         /// Equivalent to:
         /// <code>
         /// SegmentJoin(input, SegmentMode.Cut, hmm, delimiter)
         /// </code>
         /// </remarks>
-        [Obsolete("JiebaCutAndJoin is deprecated. Use SegmentJoin(input, SegmentMode.Cut, hmm, delimiter) instead.")]
+        [Obsolete("JiebaCutAndJoin is deprecated. Use SegmentJoin(input, SegmentMode.Cut, hmm, delimiter, separator) instead.")]
         public string JiebaCutAndJoin(string input, bool hmm, string delimiter)
         {
             // Keep exact behavior mapping to new API
@@ -670,7 +673,7 @@ namespace OpenccJiebaLib
         /// Thrown if this instance has been disposed.
         /// </exception>
         /// <remarks>
-        /// Use <see cref="SegmentJoin(string, SegmentMode, bool, string)"/> when a single joined string
+        /// Use <see cref="SegmentJoin(string, SegmentMode, bool, string, string)"/> when a single joined string
         /// is preferred for display, UI, or CLI output.
         /// </remarks>
         public string[] Segment(string input, SegmentMode mode, bool hmm = true)
@@ -721,6 +724,10 @@ namespace OpenccJiebaLib
         /// The delimiter used to join the output tokens. Defaults to a single space.
         /// If <c>null</c>, it is treated as an empty string.
         /// </param>
+        /// <param name="separator">
+        /// The separator used to connect the tag output. Defaults to "/".
+        /// If <c>null</c>, it is treated as an empty string.
+        /// </param>
         /// <returns>
         /// A single string containing the processed tokens joined by <paramref name="delimiter"/>.
         /// For <see cref="SegmentMode.Tag"/>, tokens are formatted as <c>"word/tag"</c>.
@@ -737,7 +744,8 @@ namespace OpenccJiebaLib
             string input,
             SegmentMode mode,
             bool hmm = true,
-            string delimiter = " ")
+            string delimiter = " ",
+            string separator = "/")
         {
             if (_disposed) throw new ObjectDisposedException(nameof(OpenccJieba));
 
@@ -745,6 +753,7 @@ namespace OpenccJiebaLib
                 return string.Empty;
 
             delimiter = delimiter ?? string.Empty;
+            separator = separator ?? string.Empty;
 
             switch (mode)
             {
@@ -763,7 +772,7 @@ namespace OpenccJiebaLib
 
                         var t = tags[i];
                         sb.Append(t.Word);
-                        sb.Append('/');
+                        sb.Append(separator);
                         sb.Append(t.Tag);
                     }
 

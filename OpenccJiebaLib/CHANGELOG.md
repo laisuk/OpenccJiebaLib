@@ -6,6 +6,14 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.2.2] - 2026-04-21
+
+### Added
+
+- Added param `separator` in segment mode `tag`
+
+---
+
 ## [1.2.1] - 2026-03-24
 
 ### Fixed
