@@ -39,7 +39,8 @@
         <Version>1.2.2</Version>
 
         <PackageReleaseNotes>v1.2.2
-            - Update native to v0.7.5
+            
+            - Update native opencc-jieba-capi to v0.7.5
             - Added param `separator` in segment mode `tag` when joined as string
         </PackageReleaseNotes>
 

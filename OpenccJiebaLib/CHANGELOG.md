@@ -10,6 +10,7 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- Update native `opencc-jieba-capi` to v0.7.5
 - Added param `separator` in segment mode `tag` when joined as string
 
 ---
