@@ -572,7 +572,7 @@ public sealed class OpenccJiebaTests
         Assert.Contains("Invalid keyword algorithm", ex.Message);
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DataRow(null, 5)]
     [DataRow("", 5)]
     [DataRow("测试文本", 0)]
@@ -584,7 +584,7 @@ public sealed class OpenccJiebaTests
             _openccJieba.JiebaKeywordExtract(input!, topK, invalid));
     }
 
-    [DataTestMethod]
+    [TestMethod]
     [DataRow(null, 5)]
     [DataRow("", 5)]
     [DataRow("测试文本", 0)]
