@@ -17,7 +17,15 @@ Chinese text conversion (Simplified/Traditional), segmentation, and keyword extr
 ## Supported OpenCC Configurations
 
 `s2t`, `t2s`, `s2tw`, `tw2s`, `s2twp`, `tw2sp`, `s2hk`, `hk2s`, `t2tw`,
-`t2twp`, `t2hk`, `tw2t`, `tw2tp`, `hk2t`, `t2jp`, `jp2t`
+`t2twp`, `t2hk`, `tw2t`, `tw2tp`, `hk2t`, `t2jp`, `jp2t`, `s2hkp`, `hk2sp`,
+`t2hkp`, `hk2tp`
+
+The phrase-aware Hong Kong configurations added in native v0.8.0 are:
+
+- `s2hkp`: Simplified Chinese to Hong Kong Traditional Chinese with phrase conversion.
+- `hk2sp`: Hong Kong Traditional Chinese to Simplified Chinese with phrase conversion.
+- `t2hkp`: Traditional Chinese to Hong Kong Traditional Chinese with phrase conversion.
+- `hk2tp`: Hong Kong Traditional Chinese to Traditional Chinese with phrase conversion.
 
 ## Getting Started
 
