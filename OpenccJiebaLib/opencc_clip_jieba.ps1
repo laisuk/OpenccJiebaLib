@@ -45,11 +45,11 @@ $Reset = "`e[0m"
 # Punctuation flag
 $Punctuation = ($Punct.ToLower() -eq "punct")
 
-Write-Host "Opencc-Clip-Jieba version 1.2.2 Copyright (c) 2026 Laisuk Lai"
+Write-Host "Opencc-Clip-Jieba version 1.3.0 Copyright (c) 2026 Laisuk Lai"
 
 # Handle help configuration
 if ($Config -eq "help") {
-    Write-Host "Usage: opencc_clip_jieba_net [s2t|t2s|s2tw|tw2s|s2twp|tw2sp|s2hk|hk2s|t2tw|tw2t|t2twp|t2t|tw2tp|t2hk|hk2t|t2jp|jp2t|auto|help|seg|tag <punct>]`n"
+    Write-Host "Usage: opencc_clip_jieba_net [s2t|s2tw|s2twp|s2hk|s2hkp|t2s|t2tw|t2twp|t2hk|t2hkp|tw2s|tw2sp|tw2t|tw2tp|hk2s|hk2sp|hk2t|hk2tp|jp2t|t2jp|auto|help|seg|tag <punct>]`n"
     exit
 }
 
@@ -74,7 +74,9 @@ $ConversionMap = @{
     "s2tw"  = @{ Input = "Simplified Chinese 简体"; Output = "Traditional Chinese 繁体/台湾" }
     "tw2s"  = @{ Input = "Traditional Chinese 繁体/台湾"; Output = "Simplified Chinese 简体" }
     "s2hk"  = @{ Input = "Simplified Chinese 简体"; Output = "Traditional Chinese 繁体/香港" }
+    "s2hkp" = @{ Input = "Simplified Chinese 简体"; Output = "Traditional Chinese 繁体/香港用語" }
     "hk2s"  = @{ Input = "Traditional Chinese 繁体/香港"; Output = "Simplified Chinese 简体" }
+    "hk2sp" = @{ Input = "Traditional Chinese 繁体/香港用語"; Output = "Simplified Chinese 简体" }
     "s2twp" = @{ Input = "Simplified Chinese 简体"; Output = "Traditional Chinese 繁体/台湾" }
     "tw2sp" = @{ Input = "Traditional Chinese 繁体/台湾"; Output = "Simplified Chinese 简体" }
     "t2tw"  = @{ Input = "Simplified Chinese 繁体"; Output = "Traditional Chinese 繁体/台湾" }
@@ -82,7 +84,9 @@ $ConversionMap = @{
     "t2twp" = @{ Input = "Simplified Chinese 繁体"; Output = "Traditional Chinese 繁体/台湾" }
     "tw2tp" = @{ Input = "Traditional Chinese 繁体/台湾"; Output = "Simplified Chinese 简体" }
     "t2hk"  = @{ Input = "Simplified Chinese 繁体"; Output = "Traditional Chinese 繁体/香港" }
+    "t2hkp" = @{ Input = "Traditional Chinese 繁体"; Output = "Traditional Chinese 繁体/香港用語" }
     "hk2t"  = @{ Input = "Traditional Chinese 繁体/香港"; Output = "Simplified Chinese 繁体" }
+    "hk2tp" = @{ Input = "Traditional Chinese 繁体/香港用語"; Output = "Traditional Chinese 繁体" }
     "t2jp"  = @{ Input = "Japanese Kyujitai 舊字體"; Output = "Japanese Shinjitai 新字体" }
     "jp2t"  = @{ Input = "Japanese Shinjitai 新字体"; Output = "Japanese Kyujitai 舊字體" }
 }

@@ -119,6 +119,9 @@ namespace OpenccJiebaLib
         /// Initializes a new instance of the <see cref="OpenccJieba"/> class and allocates the native resources.
         /// </summary>
         /// <exception cref="InvalidOperationException">Thrown if the native instance cannot be initialized.</exception>
+        /// <exception cref="DllNotFoundException">Thrown if the native OpenCC-Jieba library cannot be found.</exception>
+        /// <exception cref="EntryPointNotFoundException">Thrown if the native library does not export a required entry point.</exception>
+        /// <exception cref="BadImageFormatException">Thrown if the native library is incompatible with the current process architecture.</exception>
         public OpenccJieba()
         {
             _openccInstance = OpenccJiebaNative.opencc_jieba_new();
@@ -191,7 +194,7 @@ namespace OpenccJiebaLib
         /// </summary>
         /// <remarks>
         /// The returned value is a semantic version string in the form <c>x.y.z</c>
-        /// (for example, <c>0.7.3</c>), identifying the native library build.
+        /// (for example, <c>0.8.0</c>), identifying the native library build.
         /// <para/>
         /// This value is intended for diagnostics, logging, and display purposes.
         /// </remarks>
@@ -309,10 +312,10 @@ namespace OpenccJiebaLib
         /// </returns>
         /// <remarks>
         /// This method performs a lightweight language/script check using the native
-        /// OpenCC-Jieba engine.
-        /// A temporary native instance is created and released for each call.
+        /// OpenCC-Jieba instance owned by this object.
         /// </remarks>
         /// <exception cref="ObjectDisposedException">If the instance has been disposed.</exception>
+        /// <exception cref="InvalidOperationException">If the native instance is not initialized.</exception>
         public int ZhoCheck(string input)
         {
             if (_disposed) throw new ObjectDisposedException(nameof(OpenccJieba));
@@ -356,6 +359,7 @@ namespace OpenccJiebaLib
         /// suitable for general text processing.
         /// </remarks>
         /// <exception cref="ObjectDisposedException">If the instance has been disposed.</exception>
+        /// <exception cref="InvalidOperationException">If the native instance is not initialized.</exception>
         public string[] JiebaCut(string input, bool hmm)
         {
             if (_disposed) throw new ObjectDisposedException(nameof(OpenccJieba));
@@ -406,6 +410,7 @@ namespace OpenccJiebaLib
         /// Search mode may produce finer-grained tokens suitable for indexing or searching.
         /// </remarks>
         /// <exception cref="ObjectDisposedException">If the instance has been disposed.</exception>
+        /// <exception cref="InvalidOperationException">If the native instance is not initialized.</exception>
         public string[] JiebaCutForSearch(string input, bool hmm)
         {
             if (_disposed) throw new ObjectDisposedException(nameof(OpenccJieba));
@@ -452,6 +457,7 @@ namespace OpenccJiebaLib
         /// Full mode attempts to return all possible words in the sentence.
         /// </remarks>
         /// <exception cref="ObjectDisposedException">If the instance has been disposed.</exception>
+        /// <exception cref="InvalidOperationException">If the native instance is not initialized.</exception>
         public string[] JiebaCutAll(string input)
         {
             if (_disposed) throw new ObjectDisposedException(nameof(OpenccJieba));
@@ -503,6 +509,7 @@ namespace OpenccJiebaLib
         /// suitable for linguistic analysis.
         /// </remarks>
         /// <exception cref="ObjectDisposedException">If the instance has been disposed.</exception>
+        /// <exception cref="InvalidOperationException">If the native instance is not initialized.</exception>
         public JiebaTagItem[] JiebaTag(string input, bool hmm)
         {
             if (_disposed) throw new ObjectDisposedException(nameof(OpenccJieba));
@@ -556,6 +563,7 @@ namespace OpenccJiebaLib
         /// Suitable for display, logging, or CLI output.
         /// </remarks>
         /// <exception cref="ObjectDisposedException">If the instance has been disposed.</exception>
+        /// <exception cref="InvalidOperationException">If the native instance is not initialized.</exception>
         public string[] JiebaTagAsString(string input, bool hmm, string separator = "/")
         {
             if (_disposed) throw new ObjectDisposedException(nameof(OpenccJieba));
@@ -595,6 +603,7 @@ namespace OpenccJiebaLib
         /// <exception cref="ObjectDisposedException">
         /// Thrown if this instance has been disposed.
         /// </exception>
+        /// <exception cref="InvalidOperationException">Thrown if the native instance is not initialized.</exception>
         /// <remarks>
         /// This method is deprecated. Use <see cref="SegmentJoin(string, SegmentMode, bool, string, string)"/> instead.
         /// <para/>
@@ -629,6 +638,8 @@ namespace OpenccJiebaLib
         /// <exception cref="ObjectDisposedException">
         /// Thrown if this instance has been disposed.
         /// </exception>
+        /// <exception cref="InvalidOperationException">Thrown if the native instance is not initialized.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown if <paramref name="mode"/> is not a supported <see cref="SegmentMode"/> value.</exception>
         /// <remarks>
         /// Use <see cref="SegmentJoin(string, SegmentMode, bool, string, string)"/> when a single joined string
         /// is preferred for display, UI, or CLI output.
@@ -693,6 +704,7 @@ namespace OpenccJiebaLib
         /// <exception cref="ObjectDisposedException">
         /// Thrown if this instance has been disposed.
         /// </exception>
+        /// <exception cref="InvalidOperationException">Thrown if the native instance is not initialized.</exception>
         /// <remarks>
         /// This method is intended for UI, display, and CLI scenarios where a single formatted string is preferred.
         /// Use <see cref="Segment(string, SegmentMode, bool)"/> when structured token output is needed.
@@ -890,6 +902,7 @@ namespace OpenccJiebaLib
         /// </returns>
         /// <exception cref="ObjectDisposedException">If the instance has been disposed.</exception>
         /// <exception cref="InvalidOperationException">If the native instance is not initialized.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">If <paramref name="algorithm"/> is not a supported <see cref="JiebaKeywordAlgorithm"/> value.</exception>
         public string[] JiebaKeywordExtract(
             string input,
             int topK,
@@ -937,6 +950,8 @@ namespace OpenccJiebaLib
             if (_disposed)
                 throw new ObjectDisposedException(nameof(OpenccJieba));
 
+            var methodBytes = GetKeywordMethodBytes(algorithm);
+
             if (string.IsNullOrEmpty(input) || topK <= 0)
                 return Array.Empty<string>();
 
@@ -958,7 +973,7 @@ namespace OpenccJiebaLib
                     _openccInstance,
                     inputBytes,
                     (UIntPtr)topK,
-                    GetKeywordMethodBytes(algorithm),
+                    methodBytes,
                     allowedPosBytes);
 
                 return result == IntPtr.Zero
@@ -1082,6 +1097,9 @@ namespace OpenccJiebaLib
         /// <exception cref="InvalidOperationException">
         /// Thrown if the native instance is not initialized.
         /// </exception>
+        /// <exception cref="ArgumentOutOfRangeException">
+        /// Thrown if <paramref name="algorithm"/> is not a supported <see cref="JiebaKeywordAlgorithm"/> value.
+        /// </exception>
         public (string[] keywords, double[] weights) JiebaExtractKeywordsWeights(
             string input,
             int topK,
@@ -1105,6 +1123,8 @@ namespace OpenccJiebaLib
         /// <returns>
         /// A tuple containing extracted keywords and aligned weights.
         /// </returns>
+        /// <exception cref="ObjectDisposedException">Thrown if this instance has been disposed.</exception>
+        /// <exception cref="InvalidOperationException">Thrown if the native instance is not initialized or if native keyword extraction fails.</exception>
         public (string[] keywords, double[] weights) JiebaKeywordExtractTfidfWeights(
             string input,
             int topK,
@@ -1127,6 +1147,8 @@ namespace OpenccJiebaLib
         /// <returns>
         /// A tuple containing extracted keywords and aligned weights.
         /// </returns>
+        /// <exception cref="ObjectDisposedException">Thrown if this instance has been disposed.</exception>
+        /// <exception cref="InvalidOperationException">Thrown if the native instance is not initialized or if native keyword extraction fails.</exception>
         public (string[] keywords, double[] weights) JiebaKeywordExtractTextRankWeights(
             string input,
             int topK,
@@ -1195,6 +1217,8 @@ namespace OpenccJiebaLib
             if (_disposed)
                 throw new ObjectDisposedException(nameof(OpenccJieba));
 
+            var methodBytes = GetKeywordMethodBytes(algorithm);
+
             if (string.IsNullOrEmpty(input) || topK <= 0)
                 return (Array.Empty<string>(), Array.Empty<double>());
 
@@ -1220,7 +1244,7 @@ namespace OpenccJiebaLib
                     _openccInstance,
                     inputBytes,
                     (UIntPtr)topK,
-                    GetKeywordMethodBytes(algorithm),
+                    methodBytes,
                     allowedPosBytes,
                     out keywordCountPtr,
                     out keywordsPtr,

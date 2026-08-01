@@ -7,6 +7,12 @@ public sealed class OpenccJiebaTests
 {
     private readonly OpenccJieba _openccJieba = new();
 
+    [TestCleanup]
+    public void Cleanup()
+    {
+        _openccJieba.Dispose();
+    }
+
     [TestMethod]
     public void Convert_Test()
     {
@@ -28,6 +34,37 @@ public sealed class OpenccJiebaTests
     {
         var result = _openccJieba.Convert("这是一项意大利商务项目", OpenccConfig.S2TWP);
         Assert.AreEqual("這是一項義大利商務專案", result);
+    }
+
+    [TestMethod]
+    public void OpenccConfig_HongKongPhraseConfigs_MatchNativeV080()
+    {
+        var configs = new[]
+        {
+            (Name: "s2hkp", Config: OpenccConfig.S2HKP, NativeId: 17),
+            (Name: "hk2sp", Config: OpenccConfig.HK2SP, NativeId: 18),
+            (Name: "t2hkp", Config: OpenccConfig.T2HKP, NativeId: 19),
+            (Name: "hk2tp", Config: OpenccConfig.HK2TP, NativeId: 20)
+        };
+
+        foreach (var item in configs)
+        {
+            Assert.AreEqual(item.NativeId, (int)item.Config);
+            Assert.IsTrue(OpenccConfigExtensions.TryParseConfig(item.Name.ToUpperInvariant(), out var parsed));
+            Assert.AreEqual(item.Config, parsed);
+            Assert.AreEqual(item.Name, item.Config.ToCanonicalName());
+            Assert.IsTrue(OpenccConfigExtensions.TryGetConfigName(item.Config, out var canonicalName));
+            Assert.AreEqual(item.Name, canonicalName);
+        }
+    }
+
+    [TestMethod]
+    public void Convert_HongKongPhraseConfigs_Test()
+    {
+        Assert.AreEqual("滑鼠", _openccJieba.Convert("鼠标", OpenccConfig.S2HKP));
+        Assert.AreEqual("鼠标", _openccJieba.Convert("滑鼠", OpenccConfig.HK2SP));
+        Assert.AreEqual("滑鼠", _openccJieba.Convert("鼠標", OpenccConfig.T2HKP));
+        Assert.AreEqual("鼠標", _openccJieba.Convert("滑鼠", OpenccConfig.HK2TP));
     }
 
     [TestMethod]
@@ -533,6 +570,30 @@ public sealed class OpenccJiebaTests
 
         // Assert
         Assert.Contains("Invalid keyword algorithm", ex.Message);
+    }
+
+    [DataTestMethod]
+    [DataRow(null, 5)]
+    [DataRow("", 5)]
+    [DataRow("测试文本", 0)]
+    public void JiebaKeywordExtract_InvalidEnum_ThrowsBeforeEarlyReturn(string? input, int topK)
+    {
+        var invalid = (JiebaKeywordAlgorithm)999;
+
+        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() =>
+            _openccJieba.JiebaKeywordExtract(input!, topK, invalid));
+    }
+
+    [DataTestMethod]
+    [DataRow(null, 5)]
+    [DataRow("", 5)]
+    [DataRow("测试文本", 0)]
+    public void JiebaExtractKeywordsWeights_InvalidEnum_ThrowsBeforeEarlyReturn(string? input, int topK)
+    {
+        var invalid = (JiebaKeywordAlgorithm)999;
+
+        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() =>
+            _openccJieba.JiebaExtractKeywordsWeights(input!, topK, invalid));
     }
 
     [TestMethod]

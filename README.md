@@ -116,6 +116,7 @@ using OpenccJiebaLib;
 using (var openccJieba = new OpenccJieba())
 {
     string traditional = openccJieba.Convert("汉字转换测试", OpenccConfig.S2T);
+    string hongKong = openccJieba.Convert("鼠标", OpenccConfig.S2HKP);
 
     string[] searchTokens = openccJieba.Segment(
         "我来到北京清华大学",
@@ -150,10 +151,14 @@ String-based overloads are still available for configuration names such as `"s2t
 
 Common exception types:
 
-- `InvalidOperationException`: native initialization failures, missing native resources, or native call failures.
+- `DllNotFoundException`: the native OpenCC-Jieba library cannot be found.
+- `EntryPointNotFoundException`: the native library does not export a required function.
+- `BadImageFormatException`: the native library does not match the current process architecture.
+- `InvalidOperationException`: native initialization or native call failures after the library has loaded.
 - `ArgumentOutOfRangeException`: invalid enum values passed to `OpenccConfig`, `SegmentMode`, or `JiebaKeywordAlgorithm`
   based APIs.
-- `ArgumentException`: unsupported string-based config or keyword method inputs where validation is required.
+- `ArgumentException`: unsupported keyword method names. Invalid string configuration names passed to
+  `Convert(string, string, bool)` intentionally fall back to `s2t`; use `OpenccConfigExtensions.Parse` for strict validation.
 - `ArgumentNullException`: `null` keyword method passed to `JiebaExtractKeywordsWeights(..., string method, ...)`.
 
 ---

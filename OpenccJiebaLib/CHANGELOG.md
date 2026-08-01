@@ -10,9 +10,23 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
-- Updated `opencc-jieba-capi` native to v0.8.0
+- Updated `opencc-jieba-capi` native to v0.8.0.
+- Strongly typed keyword extraction now rejects invalid `JiebaKeywordAlgorithm` values consistently,
+  including when the input is empty or `topK` is not positive.
 
---
+### Added
+
+- Added the phrase-aware Hong Kong configurations `s2hkp`, `hk2sp`, `t2hkp`, and
+  `hk2tp` to `OpenccConfig` and its parsing/canonical-name helpers.
+- Documented the new Hong Kong conversion configurations and enum usage.
+
+### Fixed
+
+- Corrected public XML documentation for native instance use, native-loading exceptions,
+  segmentation failures, and keyword extraction exceptions.
+- Ensured tests dispose each native `OpenccJieba` instance deterministically.
+
+---
 
 ## [1.2.2] - 2026-04-21
 

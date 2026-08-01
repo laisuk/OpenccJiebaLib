@@ -40,7 +40,8 @@
 
         <PackageReleaseNotes>v1.3.0
             
-            - Update native opencc-jieba-capi to v0.8.0
+            - Updated native opencc-jieba-capi to v0.8.0
+            - Added phrase-aware Hong Kong configs: s2hkp, hk2sp, t2hkp, and hk2tp
         </PackageReleaseNotes>
 
         <PackageIcon>icon.png</PackageIcon>

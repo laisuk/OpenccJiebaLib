@@ -65,7 +65,19 @@ namespace OpenccJiebaLib
         JP2T = 15,
 
         /// <summary>Traditional Chinese → Japanese Kanji variants</summary>
-        T2JP = 16
+        T2JP = 16,
+
+        /// <summary>Simplified → Hong Kong Traditional (with phrase preferences)</summary>
+        S2HKP = 17,
+
+        /// <summary>Hong Kong Traditional → Simplified (with phrase normalization)</summary>
+        HK2SP = 18,
+
+        /// <summary>Traditional → Hong Kong Traditional (with phrase preferences)</summary>
+        T2HKP = 19,
+
+        /// <summary>Hong Kong Traditional → Traditional (with phrase normalization)</summary>
+        HK2TP = 20
     }
 
     // ReSharper restore IdentifierTypo
@@ -235,8 +247,32 @@ namespace OpenccJiebaLib
                         return true;
                     }
 
-                    if (!EqualsIgnoreCase(name, "tw2tp")) return false;
-                    configId = OpenccConfig.TW2TP;
+                    if (EqualsIgnoreCase(name, "tw2tp"))
+                    {
+                        configId = OpenccConfig.TW2TP;
+                        return true;
+                    }
+
+                    if (EqualsIgnoreCase(name, "s2hkp"))
+                    {
+                        configId = OpenccConfig.S2HKP;
+                        return true;
+                    }
+
+                    if (EqualsIgnoreCase(name, "hk2sp"))
+                    {
+                        configId = OpenccConfig.HK2SP;
+                        return true;
+                    }
+
+                    if (EqualsIgnoreCase(name, "t2hkp"))
+                    {
+                        configId = OpenccConfig.T2HKP;
+                        return true;
+                    }
+
+                    if (!EqualsIgnoreCase(name, "hk2tp")) return false;
+                    configId = OpenccConfig.HK2TP;
                     return true;
 
                 default:
@@ -317,6 +353,18 @@ namespace OpenccJiebaLib
                     return true;
                 case OpenccConfig.T2JP:
                     name = "t2jp";
+                    return true;
+                case OpenccConfig.S2HKP:
+                    name = "s2hkp";
+                    return true;
+                case OpenccConfig.HK2SP:
+                    name = "hk2sp";
+                    return true;
+                case OpenccConfig.T2HKP:
+                    name = "t2hkp";
+                    return true;
+                case OpenccConfig.HK2TP:
+                    name = "hk2tp";
                     return true;
                 default:
                     return false;
@@ -426,6 +474,10 @@ namespace OpenccJiebaLib
                 case OpenccConfig.HK2T: return "hk2t";
                 case OpenccConfig.JP2T: return "jp2t";
                 case OpenccConfig.T2JP: return "t2jp";
+                case OpenccConfig.S2HKP: return "s2hkp";
+                case OpenccConfig.HK2SP: return "hk2sp";
+                case OpenccConfig.T2HKP: return "t2hkp";
+                case OpenccConfig.HK2TP: return "hk2tp";
                 default:
                     throw new ArgumentOutOfRangeException(nameof(config), config, "Invalid OpenCC config");
             }
