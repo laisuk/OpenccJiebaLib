@@ -241,16 +241,72 @@ Common exception types:
 
 ---
 
-## API Overview
+## Public API Overview
+
+### Construction and Lifetime
+
+These constructors create an `OpenccJieba` instance; configuration is selected per conversion call.
+
+- `OpenccJieba()`
+  Creates an instance with built-in OpenCC and Jieba dictionaries.
+- `OpenccJieba(IEnumerable<UserDictEntry> userDictionaryEntries)`
+  Adds initial Jieba segmentation entries while retaining built-in conversion mappings.
+- `OpenccJieba(IEnumerable<CustomDictSpec> customDictionarySpecifications)`
+  Applies ordered custom OpenCC mappings while retaining built-in Jieba segmentation.
+-
+`OpenccJieba(IEnumerable<UserDictEntry> userDictionaryEntries, IEnumerable<CustomDictSpec> customDictionarySpecifications)`
+Supplies both Jieba entries and custom OpenCC mappings.
+- `void AddWord(string word, ulong? frequency = null, string tag = null)`
+  Adds or updates a Jieba word on this instance immediately. Null frequency requests automatic selection;
+  zero explicitly disables the word. An existing word retains its original POS tag.
+- `void Dispose()`
+  Implements `IDisposable` for deterministic native resource cleanup. Repeated calls are safe;
+  operations after disposal throw `ObjectDisposedException`.
+
+Custom constructors and `AddWord` require native v0.8.1.1 or later. Native operations and disposal
+are serialized per instance.
+See [Custom dictionaries and dynamic Jieba words](#custom-dictionaries-and-dynamic-jieba-words)
+for validation, ownership, merge semantics, and bundled runtime availability.
+
+### Dictionary Types
+
+- `CustomDictSpec(DictSlot slot, CustomDictMode mode, IEnumerable<KeyValuePair<string, string>> entries)`
+  Creates an immutable, ordered snapshot of conversion mappings.
+- `DictSlot CustomDictSpec.Slot { get; }`
+  Gets the native conversion dictionary slot.
+- `CustomDictMode CustomDictSpec.Mode { get; }`
+  Gets the merge mode.
+- `IReadOnlyList<KeyValuePair<string, string>> CustomDictSpec.Entries { get; }`
+  Gets the read-only snapshot in input order.
+- `UserDictEntry(string word, ulong frequency, string tag = null)`
+  Creates an immutable, validated Jieba entry with an explicit frequency that must fit native `size_t`.
+- `string UserDictEntry.Word { get; }`, `ulong UserDictEntry.Frequency { get; }`, `string UserDictEntry.Tag { get; }`
+  Expose the word, frequency, and optional POS tag. Null and empty tags remain distinct.
+- `DictSlot : uint`
+  Defines the 19 native conversion slots, from `STCharacters` (1) through `JPSPhrases` (19).
+- `CustomDictMode : uint`
+  Defines `Append` (1) to merge entries and `Override` (2) to clear the selected slot before applying entries.
+
+---
 
 ### Conversion
 
 - `Convert(string input, string config, bool punctuation = false)`
 - `Convert(string input, OpenccConfig configId, bool punctuation = false)`
-- `OpenccConfig`
+- `OpenccConfig` defines all 20 numeric conversion IDs, including the phrase-aware Hong Kong configurations.
+- `OpenccConfigExtensions.DefaultConfig()` returns `OpenccConfig.S2T`.
+- `OpenccConfigExtensions.TryParseConfig(string name, out OpenccConfig configId)` returns whether a canonical name is
+  supported;
+  on failure, `configId` is `default`.
+- `OpenccConfigExtensions.TryGetConfigName(OpenccConfig configId, out string name)` returns a canonical lowercase name,
+  or `false` with an empty string for an undefined ID.
 - `OpenccConfigExtensions.IsValidConfig(string name)`
 - `OpenccConfigExtensions.Parse(string name)`
 - `OpenccConfigExtensions.ToCanonicalName(this OpenccConfig config)`
+
+`Convert` returns a `string`. Its string overload accepts case-insensitive names and falls back to `s2t`
+for unsupported names. The managed configuration helpers do not invoke native code: `Parse` provides strict
+validation and throws for null or unsupported names; `ToCanonicalName` throws for undefined enum values.
 
 ---
 
@@ -272,11 +328,30 @@ Low-level methods:
 - `JiebaTag(string input, bool hmm)`
 - `JiebaTagAsString(string input, bool hmm, string separator = "/")`
 
+`Segment` returns `string[]`; `SegmentJoin` returns a single joined `string`.
+`SegmentMode` defines `Cut` (accurate), `Search` (finer-grained), `Full` (all matching tokens),
+and `Tag` (tokens formatted as `word/tag`). `hmm` enables Hidden Markov Model support where applicable
+and is ignored in `Full` mode. `SegmentJoin` uses `delimiter` between tokens and `separator` between
+words and POS tags in `Tag` mode.
+
+`JiebaCut`, `JiebaCutForSearch`, `JiebaCutAll`, and `JiebaTagAsString` return `string[]`.
+`JiebaTag` returns `JiebaTagItem[]` for structured POS results:
+
+- `JiebaTagItem(string word, string tag)` creates a readonly token/tag value, converting null arguments to empty
+  strings.
+- `string JiebaTagItem.Word { get; }` gets the token text.
+- `string JiebaTagItem.Tag { get; }` gets the POS tag.
+- `string JiebaTagItem.ToString()` formats the value as `word/tag`.
+
+`ZhoCheck` returns an `int`: 0 for other text, 1 for Traditional Chinese, or 2 for Simplified Chinese.
+The obsolete `JiebaCutAndJoin` returns a `string`; use `SegmentJoin` with `SegmentMode.Cut` instead.
+
 ---
 
 ### Keyword Extraction
 
-- `JiebaKeywordAlgorithm`
+- `JiebaKeywordAlgorithm` defines `Tfidf` (1) and `TextRank` (2).
+- `KeywordAlgorithmExtensions.TryParse(string value, out JiebaKeywordAlgorithm algorithm)`
 - `KeywordAlgorithmExtensions.Parse(string value)`
 - `KeywordAlgorithmExtensions.ToNativeMethod(this JiebaKeywordAlgorithm algorithm)`
 - `JiebaKeywordExtract(string input, int topK, JiebaKeywordAlgorithm algorithm, string allowedPos = "")`
@@ -290,12 +365,22 @@ Weighted results:
 - `JiebaKeywordExtractTfidfWeights(string input, int topK, string allowedPos = "")`
 - `JiebaKeywordExtractTextRankWeights(string input, int topK, string allowedPos = "")`
 
+Unweighted extractors return `string[]`. Weighted extractors return
+`(string[] keywords, double[] weights)`, with weights aligned to keywords by index.
+`topK` limits the number of results; nonpositive values return empty results. `allowedPos` is a space-separated
+POS filter (for example, `"n nr ns"`); an empty string disables filtering.
+
+`KeywordAlgorithmExtensions` helpers run entirely in managed code. Parsing is case-insensitive, trims surrounding
+whitespace, and accepts `tfidf`, `tf-idf`, `tf_idf`, `textrank`, `text-rank`, and `text_rank`.
+`TryParse` returns `false` with a default enum value for unsupported input; `Parse` throws `ArgumentException`.
+`ToNativeMethod` returns `"tfidf"` or `"textrank"` and throws `ArgumentOutOfRangeException` for undefined values.
+
 ---
 
 ### Utilities
 
-- `GetNativeAbiNumber()`
-- `GetNativeVersionString()`
+- `static int GetNativeAbiNumber()` returns the native binary interface version for compatibility diagnostics.
+- `static string GetNativeVersionString()` returns the native library version for logging and diagnostics.
 
 ---
 
