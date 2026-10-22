@@ -71,11 +71,13 @@ namespace OpenccJiebaLib
     /// </summary>
     /// <remarks>
     /// This class manages the native OpenCC/Jieba instance and exposes methods for text conversion, segmentation, and keyword extraction.
+    /// Native operations, word insertion, and disposal on an instance are serialized. Different instances may run concurrently.
     /// </remarks>
     public sealed class OpenccJieba : IDisposable
     {
         private IntPtr _openccInstance; // Native instance pointer
-        private bool _disposed; // Tracks whether Dispose has been called
+        private volatile bool _disposed; // Tracks whether Dispose has been called
+        private readonly object _syncRoot = new object();
 
         // Pre-encoded config bytes for common configurations (canonical lowercase -> UTF-8 nul-terminated)
         private static readonly Dictionary<string, byte[]> EncodedConfigCache =
@@ -127,7 +129,86 @@ namespace OpenccJiebaLib
             _openccInstance = OpenccJiebaNative.opencc_jieba_new();
             if (_openccInstance == IntPtr.Zero)
             {
-                throw new InvalidOperationException("Failed to initialize native OpenCC/Jieba instance.");
+                throw NativeFailure("Failed to initialize native OpenCC/Jieba instance.");
+            }
+        }
+
+        /// <summary>Creates an instance with Jieba segmentation entries and built-in conversion dictionaries.</summary>
+        /// <param name="userDictionaryEntries">Entries copied during construction; empty uses the built-in dictionary.</param>
+        /// <remarks>Requires native v0.8.1.1. The collection is snapshotted and native code copies all data before return.</remarks>
+        /// <exception cref="ArgumentNullException">The collection is null.</exception>
+        /// <exception cref="ArgumentException">The collection contains a null entry.</exception>
+        /// <exception cref="InvalidOperationException">Native initialization failed; the message includes native error details.</exception>
+        public OpenccJieba(IEnumerable<UserDictEntry> userDictionaryEntries)
+        {
+            if (userDictionaryEntries == null) throw new ArgumentNullException(nameof(userDictionaryEntries));
+            using (var buffers = new CustomDictionaryMarshaller(userDictionaryEntries, null))
+                _openccInstance = buffers.CreateInstance();
+        }
+
+        /// <summary>Creates an instance with custom OpenCC conversion dictionaries and built-in Jieba segmentation.</summary>
+        /// <param name="customDictionarySpecifications">Ordered specifications copied during construction; empty uses built-in dictionaries.</param>
+        /// <remarks>Requires native v0.8.1.1. Phrase mappings may require a corresponding Jieba user word to match.</remarks>
+        /// <exception cref="ArgumentNullException">The collection is null.</exception>
+        /// <exception cref="ArgumentException">The collection contains a null specification.</exception>
+        /// <exception cref="InvalidOperationException">Native initialization failed; the message includes native error details.</exception>
+        public OpenccJieba(IEnumerable<CustomDictSpec> customDictionarySpecifications)
+        {
+            if (customDictionarySpecifications == null) throw new ArgumentNullException(nameof(customDictionarySpecifications));
+            using (var buffers = new CustomDictionaryMarshaller(null, customDictionarySpecifications))
+                _openccInstance = buffers.CreateInstance();
+        }
+
+        /// <summary>Creates an instance with both Jieba segmentation entries and OpenCC conversion mappings.</summary>
+        /// <param name="userDictionaryEntries">Entries copied during construction; cannot be null.</param>
+        /// <param name="customDictionarySpecifications">Ordered specifications copied during construction; cannot be null.</param>
+        /// <remarks>Requires native v0.8.1.1. Both collections may be empty. Native code retains its own copies.</remarks>
+        /// <exception cref="ArgumentNullException">Either collection is null.</exception>
+        /// <exception cref="ArgumentException">Either collection contains a null element.</exception>
+        /// <exception cref="InvalidOperationException">Native initialization failed; the message includes native error details.</exception>
+        public OpenccJieba(IEnumerable<UserDictEntry> userDictionaryEntries,
+            IEnumerable<CustomDictSpec> customDictionarySpecifications)
+        {
+            if (userDictionaryEntries == null) throw new ArgumentNullException(nameof(userDictionaryEntries));
+            if (customDictionarySpecifications == null) throw new ArgumentNullException(nameof(customDictionarySpecifications));
+            using (var buffers = new CustomDictionaryMarshaller(userDictionaryEntries, customDictionarySpecifications))
+                _openccInstance = buffers.CreateInstance();
+        }
+
+        /// <summary>Adds or updates a Jieba word immediately on this instance, without changing conversion mappings.</summary>
+        /// <param name="word">Nonempty valid Unicode word without whitespace or NUL characters.</param>
+        /// <param name="frequency">Null lets Jieba choose the frequency. Zero explicitly disables the word. Must fit native size_t.</param>
+        /// <param name="tag">Optional POS tag for a newly inserted word, without whitespace or NUL. Null omits it; empty is passed as an empty tag.</param>
+        /// <remarks>
+        /// Requires native v0.8.1.1. Serialized with all other native operations and disposal on this instance.
+        /// The bundled Jieba retains an existing word's original POS tag when updating its frequency.
+        /// </remarks>
+        /// <exception cref="ObjectDisposedException">The instance has been disposed.</exception>
+        /// <exception cref="ArgumentException">Word or tag is invalid Unicode or violates the native text rules.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">Frequency exceeds native size_t.</exception>
+        /// <exception cref="InvalidOperationException">Native insertion failed; the message includes native error details.</exception>
+        public void AddWord(string word, ulong? frequency = null, string tag = null)
+        {
+            lock (_syncRoot)
+            {
+                if (_disposed) throw new ObjectDisposedException(nameof(OpenccJieba));
+                DictionaryValidation.WordAndTag(word, tag);
+                var nativeFrequency = DictionaryValidation.Frequency(frequency ?? 0);
+                if (!OpenccJiebaNative.opencc_jieba_add_word(_openccInstance,
+                        DictionaryValidation.Utf8Z(word), frequency.HasValue, nativeFrequency,
+                        DictionaryValidation.Utf8Z(tag)))
+                    throw NativeFailure("Failed to add Jieba word.");
+            }
+        }
+
+        // last_error returns an owned string and must be read immediately on the failing thread.
+        internal static InvalidOperationException NativeFailure(string context)
+        {
+            var error = OpenccJiebaNative.opencc_jieba_last_error();
+            try { return new InvalidOperationException(context + " " + Utf8BytesToString(error)); }
+            finally
+            {
+                if (error != IntPtr.Zero) OpenccJiebaNative.opencc_jieba_free_string(error);
             }
         }
 
@@ -145,6 +226,14 @@ namespace OpenccJiebaLib
         /// </summary>
         /// <param name="disposing">True if called from Dispose; false if called from finalizer.</param>
         private void Dispose(bool disposing)
+        {
+            lock (_syncRoot)
+            {
+                DisposeLocked(disposing);
+            }
+        }
+
+        private void DisposeLocked(bool disposing)
         {
             if (_disposed)
                 return;
@@ -199,7 +288,7 @@ namespace OpenccJiebaLib
         /// This value is intended for diagnostics, logging, and display purposes.
         /// </remarks>
         /// <returns>
-        /// A semantic version string (<c>x.y.z</c>) reported by the native library.
+        /// A version string (<c>x.y.z</c> or <c>x.y.z.revision</c>) reported by the native library.
         /// </returns>
         public static string GetNativeVersionString()
         {
@@ -241,6 +330,14 @@ namespace OpenccJiebaLib
         /// </example>
         public string Convert(string input, string config, bool punctuation = false)
         {
+            lock (_syncRoot)
+            {
+                return ConvertLocked(input, config, punctuation);
+            }
+        }
+
+        private string ConvertLocked(string input, string config, bool punctuation = false)
+        {
             if (_disposed) throw new ObjectDisposedException(nameof(OpenccJieba));
             if (string.IsNullOrEmpty(input)) return string.Empty;
 
@@ -277,6 +374,14 @@ namespace OpenccJiebaLib
         /// </code>
         /// </example>
         public string Convert(string input, OpenccConfig configId, bool punctuation = false)
+        {
+            lock (_syncRoot)
+            {
+                return ConvertLocked(input, configId, punctuation);
+            }
+        }
+
+        private string ConvertLocked(string input, OpenccConfig configId, bool punctuation = false)
         {
             if (_disposed) throw new ObjectDisposedException(nameof(OpenccJieba));
             return string.IsNullOrEmpty(input) ? string.Empty : ConvertCore(input, configId, punctuation);
@@ -317,6 +422,14 @@ namespace OpenccJiebaLib
         /// <exception cref="ObjectDisposedException">If the instance has been disposed.</exception>
         /// <exception cref="InvalidOperationException">If the native instance is not initialized.</exception>
         public int ZhoCheck(string input)
+        {
+            lock (_syncRoot)
+            {
+                return ZhoCheckLocked(input);
+            }
+        }
+
+        private int ZhoCheckLocked(string input)
         {
             if (_disposed) throw new ObjectDisposedException(nameof(OpenccJieba));
             if (string.IsNullOrEmpty(input)) return 0;
@@ -361,6 +474,14 @@ namespace OpenccJiebaLib
         /// <exception cref="ObjectDisposedException">If the instance has been disposed.</exception>
         /// <exception cref="InvalidOperationException">If the native instance is not initialized.</exception>
         public string[] JiebaCut(string input, bool hmm)
+        {
+            lock (_syncRoot)
+            {
+                return JiebaCutLocked(input, hmm);
+            }
+        }
+
+        private string[] JiebaCutLocked(string input, bool hmm)
         {
             if (_disposed) throw new ObjectDisposedException(nameof(OpenccJieba));
 
@@ -413,6 +534,14 @@ namespace OpenccJiebaLib
         /// <exception cref="InvalidOperationException">If the native instance is not initialized.</exception>
         public string[] JiebaCutForSearch(string input, bool hmm)
         {
+            lock (_syncRoot)
+            {
+                return JiebaCutForSearchLocked(input, hmm);
+            }
+        }
+
+        private string[] JiebaCutForSearchLocked(string input, bool hmm)
+        {
             if (_disposed) throw new ObjectDisposedException(nameof(OpenccJieba));
 
             if (string.IsNullOrEmpty(input))
@@ -459,6 +588,14 @@ namespace OpenccJiebaLib
         /// <exception cref="ObjectDisposedException">If the instance has been disposed.</exception>
         /// <exception cref="InvalidOperationException">If the native instance is not initialized.</exception>
         public string[] JiebaCutAll(string input)
+        {
+            lock (_syncRoot)
+            {
+                return JiebaCutAllLocked(input);
+            }
+        }
+
+        private string[] JiebaCutAllLocked(string input)
         {
             if (_disposed) throw new ObjectDisposedException(nameof(OpenccJieba));
 
@@ -511,6 +648,14 @@ namespace OpenccJiebaLib
         /// <exception cref="ObjectDisposedException">If the instance has been disposed.</exception>
         /// <exception cref="InvalidOperationException">If the native instance is not initialized.</exception>
         public JiebaTagItem[] JiebaTag(string input, bool hmm)
+        {
+            lock (_syncRoot)
+            {
+                return JiebaTagLocked(input, hmm);
+            }
+        }
+
+        private JiebaTagItem[] JiebaTagLocked(string input, bool hmm)
         {
             if (_disposed) throw new ObjectDisposedException(nameof(OpenccJieba));
 
@@ -947,6 +1092,18 @@ namespace OpenccJiebaLib
             JiebaKeywordAlgorithm algorithm,
             string allowedPos = "")
         {
+            lock (_syncRoot)
+            {
+                return JiebaKeywordExtractCoreLocked(input, topK, algorithm, allowedPos);
+            }
+        }
+
+        private string[] JiebaKeywordExtractCoreLocked(
+            string input,
+            int topK,
+            JiebaKeywordAlgorithm algorithm,
+            string allowedPos = "")
+        {
             if (_disposed)
                 throw new ObjectDisposedException(nameof(OpenccJieba));
 
@@ -1209,6 +1366,18 @@ namespace OpenccJiebaLib
         /// or if the native keyword extraction call fails.
         /// </exception>
         private (string[] keywords, double[] weights) JiebaExtractKeywordsWeightsCore(
+            string input,
+            int topK,
+            JiebaKeywordAlgorithm algorithm,
+            string allowedPos = "")
+        {
+            lock (_syncRoot)
+            {
+                return JiebaExtractKeywordsWeightsCoreLocked(input, topK, algorithm, allowedPos);
+            }
+        }
+
+        private (string[] keywords, double[] weights) JiebaExtractKeywordsWeightsCoreLocked(
             string input,
             int topK,
             JiebaKeywordAlgorithm algorithm,

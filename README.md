@@ -147,6 +147,83 @@ using (var openccJieba = new OpenccJieba())
 String-based overloads are still available for configuration names such as `"s2t"` and keyword methods such as
 `"textrank"`, but the enum-based APIs are recommended for new code.
 
+## Custom dictionaries and dynamic Jieba words
+
+These APIs require native `opencc_jieba_capi` **v0.8.1.1 or later**. Windows x64 has been
+validated against v0.8.1.1. The other bundled RID binaries are unchanged and await synchronization;
+their new APIs have not been validated. An older native library missing a required export raises
+`EntryPointNotFoundException` when that API is used.
+
+OpenCC dictionaries change conversion mappings. Jieba user entries change segmentation and POS
+tagging. They can be supplied separately or together:
+
+```csharp
+using System.Collections.Generic;
+using OpenccJiebaLib;
+
+var custom = new[]
+{
+    new CustomDictSpec(DictSlot.STCharacters, CustomDictMode.Append,
+        new[] { new KeyValuePair<string, string>("龙", "龍龍") })
+};
+using (var converter = new OpenccJieba(custom))
+{
+    string result = converter.Convert("龙", "s2t"); // 龍龍
+}
+
+var users = new[] { new UserDictEntry("帕兰蒂尔", 100000, "nz") };
+using (var converter = new OpenccJieba(users))
+{
+    string[] tokens = converter.JiebaCut("帕兰蒂尔", false); // ["帕兰蒂尔"]
+}
+
+var phrases = new[]
+{
+    new CustomDictSpec(DictSlot.STPhrases, CustomDictMode.Append,
+        new[] { new KeyValuePair<string, string>("帕兰蒂尔", "柏蘭蒂爾") })
+};
+using (var converter = new OpenccJieba(users, phrases))
+{
+    string result = converter.Convert("帕兰蒂尔是一家公司", "s2t"); // 柏蘭蒂爾是一家公司
+    converter.AddWord("星际量子咖啡馆", frequency: 100000, tag: "nz");
+    string[] tokens = converter.JiebaCut("星际量子咖啡馆", false); // ["星际量子咖啡馆"]
+    converter.AddWord("自动选频词"); // null frequency lets Jieba choose
+    converter.AddWord("星际量子咖啡馆", frequency: 0); // explicit zero disables the word
+}
+```
+
+`CustomDictSpec` takes an immutable, ordered snapshot of mappings. Constructors snapshot the
+collections, pin UTF-8 buffers only for the synchronous call, and release them after native code
+copies the data. Caller collections can be changed afterward. Collections and entries cannot be
+null. Strings must be valid Unicode without embedded NUL characters. Jieba words must also be
+nonempty and contain no whitespace; supplied POS tags must contain no whitespace.
+
+`Append = 1` merges into a slot, replacing duplicate keys with the last mapping. `Override = 2`
+clears that slot before adding mappings. Specifications apply in order. Empty constructor
+collections use the built-in dictionaries; an empty Append mapping list leaves a slot unchanged,
+and an empty Override list clears it. Empty mapping keys or values fail native initialization with
+an `InvalidOperationException` containing the native error. `DictSlot` exposes only the 19 slots
+in the Jieba header, with their exact native IDs; punctuation and Seal slots are not supported.
+Select the slot used by the conversion configuration passed to `Convert`.
+
+A custom OpenCC phrase can match only within Jieba's segmentation boundaries. For example,
+`HKPhrasesRev` mapping `細路哥 → 小男孩` alone leaves `這個細路哥很靈活` as
+`这个细路哥很灵活` under `hk2sp`, because Jieba splits `細路 / 哥`. Also supplying
+`new UserDictEntry("細路哥", 3)` yields `這個 / 細路哥 / 很 / 靈活` and
+`这个小男孩很灵活`. Calling `AddWord("細路哥", 3)` on that custom instance enables
+the same phrase mapping immediately.
+
+`UserDictEntry.Frequency` is required. `AddWord` accepts an optional `ulong?` frequency:
+null requests automatic frequency, while zero is passed explicitly. Frequencies must fit the
+current process's native `size_t`. A null tag passes native NULL; an empty tag passes an empty
+string. In the bundled Jieba, a tag is assigned when a word is first inserted; updating an existing
+word changes its frequency and retains its original tag. `AddWord` changes only that instance's
+Jieba dictionary and does not change OpenCC slots or recreate the native instance.
+
+Native operations, `AddWord`, and disposal are serialized per instance. Different instances can
+run concurrently. Disposal is idempotent, and operations after disposal throw
+`ObjectDisposedException`. Constructor and insertion failures preserve native error details.
+
 ## Error Handling
 
 Common exception types:
@@ -158,7 +235,8 @@ Common exception types:
 - `ArgumentOutOfRangeException`: invalid enum values passed to `OpenccConfig`, `SegmentMode`, or `JiebaKeywordAlgorithm`
   based APIs.
 - `ArgumentException`: unsupported keyword method names. Invalid string configuration names passed to
-  `Convert(string, string, bool)` intentionally fall back to `s2t`; use `OpenccConfigExtensions.Parse` for strict validation.
+  `Convert(string, string, bool)` intentionally fall back to `s2t`; use `OpenccConfigExtensions.Parse` for strict
+  validation.
 - `ArgumentNullException`: `null` keyword method passed to `JiebaExtractKeywordsWeights(..., string method, ...)`.
 
 ---

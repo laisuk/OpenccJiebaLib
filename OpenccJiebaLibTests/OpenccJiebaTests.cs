@@ -667,7 +667,7 @@ public sealed class OpenccJiebaTests
         Assert.IsFalse(string.IsNullOrWhiteSpace(abiVersion), "Version string should not be empty.");
 
         var parts = abiVersion.Split('.');
-        Assert.HasCount(3, parts, "Version should have format x.y.z.");
+        Assert.IsTrue(parts.Length == 3 || parts.Length == 4, "Version should have format x.y.z or x.y.z.revision.");
 
         foreach (var part in parts)
         {

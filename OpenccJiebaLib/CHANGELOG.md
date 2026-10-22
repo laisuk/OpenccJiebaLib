@@ -10,7 +10,20 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
-- Update `opencc-jieba-capi` native to v0.8.1.
+- Windows x64 native `opencc-jieba-capi` updated and validated against v0.8.1.1.
+  Other RID binaries remain unchanged and await synchronization; new APIs require native v0.8.1.1 or later.
+- Serialized native instance operations and disposal to protect dynamic Jieba mutation.
+- Native version regression checks accept the optional C API revision component.
+
+### Added
+
+- Immutable `CustomDictSpec`, `CustomDictMode`, and the 19 native `DictSlot` values.
+- Immutable `UserDictEntry` and constructor overloads for Jieba user entries, OpenCC conversion mappings, or both.
+- Exception-safe pinned UTF-8 constructor marshaling, strict Unicode/NUL validation, and native error propagation.
+- Dynamic `AddWord(word, frequency, tag)` with automatic/zero frequency semantics and disposal protection.
+  Existing words retain their original POS tag according to bundled Jieba behavior.
+- Regression coverage for dictionary ordering, Append/Override, Unicode, ownership, native failures,
+  concurrent mutation/disposal, and Jieba/OpenCC phrase interaction.
 
 ---
 
@@ -69,9 +82,12 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 - Added unified `Segment(string, SegmentMode, bool)` API for cut, search, full, and tag modes.
 - Added unified `SegmentJoin(string, SegmentMode, bool, string)` API for joined segmentation/tagging output.
 - Added `JiebaKeywordAlgorithm` enum for strongly typed Jieba keyword extraction algorithm selection.
-- Added `JiebaKeywordExtract(string, int, JiebaKeywordAlgorithm, string)` unified keyword extraction API with optional POS filtering.
-- Added `JiebaExtractKeywordsWeights(string, int, JiebaKeywordAlgorithm, string)` overload for weighted keyword extraction with strongly typed algorithm selection and optional POS filtering.
-- Added support for native `_pos()` keyword extraction APIs, including `opencc_jieba_keywords_pos` and `opencc_jieba_keywords_and_weights_pos`.
+- Added `JiebaKeywordExtract(string, int, JiebaKeywordAlgorithm, string)` unified keyword extraction API with optional
+  POS filtering.
+- Added `JiebaExtractKeywordsWeights(string, int, JiebaKeywordAlgorithm, string)` overload for weighted keyword
+  extraction with strongly typed algorithm selection and optional POS filtering.
+- Added support for native `_pos()` keyword extraction APIs, including `opencc_jieba_keywords_pos` and
+  `opencc_jieba_keywords_and_weights_pos`.
 
 ### Changed
 
@@ -81,13 +97,14 @@ This project adheres to [Semantic Versioning](https://semver.org/).
   configuration is now provided per `Convert()` call.
 - Improved UTF-8 interop by centralizing null-terminated encoding helpers (`*Utf8Z`)
   and reusing pooled buffers where appropriate.
-- Refactored keyword extraction APIs to use shared internal helpers and support optional POS filtering via space-separated `allowedPos` strings.
+- Refactored keyword extraction APIs to use shared internal helpers and support optional POS filtering via
+  space-separated `allowedPos` strings.
 - Updated `opencc-jieba-rs` C API to v0.7.4.
 
 ### Fixed
 
-- Fixed ABI mismatch in C# P/Invoke by using `UnmanagedType.I1` for Rust `bool` parameters
-  (`OpenccFmmsegLib` / `OpenccJiebaLib`).
+- Fixed ABI mismatch in C# P/Invoke by using `UnmanagedType.I1` for Rust `bool` parameters (`OpenccFmmsegLib` /
+  `OpenccJiebaLib`).
 - Improved robustness of native memory cleanup in keyword extraction APIs.
 
 ---
