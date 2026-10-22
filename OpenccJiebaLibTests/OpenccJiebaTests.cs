@@ -102,11 +102,11 @@ public sealed class OpenccJiebaTests
 
         // Assert
         Assert.IsNotNull(result, "JiebaCut returned null.");
-        Assert.AreNotEqual(0, result.Length, "JiebaCut returned an empty array.");
+        Assert.IsNotEmpty(result, "JiebaCut returned an empty array.");
 
         // Check for expected segmented results (the actual results may vary based on the segmentation algorithm and dictionary)
         var expectedSegments = new[] { "我", "来到", "北京", "清华大学" };
-        CollectionAssert.AreEqual(expectedSegments, result, "The segmented words do not match the expected output.");
+        Assert.AreSequenceEqual(expectedSegments, result, "The segmented words do not match the expected output.");
     }
 
     [TestMethod]
@@ -121,13 +121,13 @@ public sealed class OpenccJiebaTests
 
         // Assert
         Assert.IsNotNull(result, "JiebaCutForSearch returned null.");
-        Assert.AreNotEqual(0, result.Length, "JiebaCutForSearch returned an empty array.");
+        Assert.IsNotEmpty(result, "JiebaCutForSearch returned an empty array.");
 
         // Search mode is finer-grained, so just check key tokens exist
-        CollectionAssert.Contains(result, "我");
-        CollectionAssert.Contains(result, "来到");
-        CollectionAssert.Contains(result, "北京");
-        CollectionAssert.Contains(result, "清华大学");
+        Assert.Contains("我", result);
+        Assert.Contains("来到", result);
+        Assert.Contains("北京", result);
+        Assert.Contains("清华大学", result);
 
         // Optional: search mode usually splits more
         Assert.IsGreaterThanOrEqualTo(4, result.Length, "Search mode should produce finer-grained tokens.");
@@ -144,13 +144,13 @@ public sealed class OpenccJiebaTests
 
         // Assert
         Assert.IsNotNull(result, "JiebaCutAll returned null.");
-        Assert.AreNotEqual(0, result.Length, "JiebaCutAll returned an empty array.");
+        Assert.IsNotEmpty(result, "JiebaCutAll returned an empty array.");
 
         // Full mode returns all possible words, so only check key presence
-        CollectionAssert.Contains(result, "我");
-        CollectionAssert.Contains(result, "来到");
-        CollectionAssert.Contains(result, "北京");
-        CollectionAssert.Contains(result, "清华大学");
+        Assert.Contains("我", result);
+        Assert.Contains("来到", result);
+        Assert.Contains("北京", result);
+        Assert.Contains("清华大学", result);
 
         // Optional: full mode should be >= cut mode
         Assert.IsGreaterThanOrEqualTo(4, result.Length, "Full mode should produce equal or more tokens than cut mode.");
@@ -168,7 +168,7 @@ public sealed class OpenccJiebaTests
 
         // Assert basic correctness
         Assert.IsNotNull(result, "JiebaTag returned null.");
-        Assert.AreNotEqual(0, result.Length, "JiebaTag returned an empty array.");
+        Assert.IsNotEmpty(result, "JiebaTag returned an empty array.");
 
         // Print output (for first-run inspection)
         Console.WriteLine("JiebaTag Output:");
@@ -201,7 +201,7 @@ public sealed class OpenccJiebaTests
 
         // Assert
         Assert.IsNotNull(result, "JiebaTag returned null.");
-        Assert.AreNotEqual(0, result.Length, "JiebaTag returned an empty array.");
+        Assert.IsNotEmpty(result, "JiebaTag returned an empty array.");
 
         var expected = new[]
         {
@@ -232,13 +232,13 @@ public sealed class OpenccJiebaTests
 
         // Assert
         Assert.IsNotNull(result, "JiebaCutForSearch returned null.");
-        Assert.AreNotEqual(0, result.Length, "JiebaCutForSearch returned an empty array.");
+        Assert.IsNotEmpty(result, "JiebaCutForSearch returned an empty array.");
 
         // Search mode is finer-grained, so just check key tokens exist
-        CollectionAssert.Contains(result, "我");
-        CollectionAssert.Contains(result, "来到");
-        CollectionAssert.Contains(result, "北京");
-        CollectionAssert.Contains(result, "清华大学");
+        Assert.Contains("我", result);
+        Assert.Contains("来到", result);
+        Assert.Contains("北京", result);
+        Assert.Contains("清华大学", result);
 
         // Optional: search mode usually splits more
         Assert.IsGreaterThanOrEqualTo(4, result.Length, "Search mode should produce finer-grained tokens.");
@@ -274,9 +274,8 @@ public sealed class OpenccJiebaTests
 
         var result = _openccJieba.JiebaTagAsString(input, hmm);
 
-        CollectionAssert.AreEqual(
-            new[] { "我/r", "来到/v", "北京/ns", "清华大学/nt" },
-            result
+        Assert.AreSequenceEqual(
+            ["我/r", "来到/v", "北京/ns", "清华大学/nt"], result
         );
     }
 
@@ -288,9 +287,8 @@ public sealed class OpenccJiebaTests
 
         var result = _openccJieba.JiebaTagAsString(input, hmm, ":");
 
-        CollectionAssert.AreEqual(
-            new[] { "我:r", "来到:v", "北京:ns", "清华大学:nt" },
-            result
+        Assert.AreSequenceEqual(
+            ["我:r", "来到:v", "北京:ns", "清华大学:nt"], result
         );
     }
 
@@ -311,11 +309,11 @@ public sealed class OpenccJiebaTests
 
         // Assert
         Assert.IsNotNull(result, "JiebaKeyword returned null.");
-        Assert.AreNotEqual(0, result.Length, "JiebaKeyword returned an empty array.");
+        Assert.IsNotEmpty(result, "JiebaKeyword returned an empty array.");
 
         // Check for expected segmented results (the actual results may vary based on the segmentation algorithm and dictionary)
         var expectedSegments = new[] { "清华大学", "北京", "来到", "我" };
-        CollectionAssert.AreEqual(expectedSegments, result, "The segmented words do not match the expected output.");
+        Assert.AreSequenceEqual(expectedSegments, result, "The segmented words do not match the expected output.");
     }
 
     [TestMethod]
@@ -335,11 +333,11 @@ public sealed class OpenccJiebaTests
 
         // Assert
         Assert.IsNotNull(result, "JiebaKeyword returned null.");
-        Assert.AreNotEqual(0, result.Length, "JiebaKeyword returned an empty array.");
+        Assert.IsNotEmpty(result, "JiebaKeyword returned an empty array.");
 
         // Check for expected segmented results (the actual results may vary based on the segmentation algorithm and dictionary)
         var expectedSegments = new[] { "清华大学", "来到", "北京" };
-        CollectionAssert.AreEqual(expectedSegments, result, "The segmented words do not match the expected output.");
+        Assert.AreSequenceEqual(expectedSegments, result, "The segmented words do not match the expected output.");
     }
 
 
@@ -578,7 +576,7 @@ public sealed class OpenccJiebaTests
     [DataRow("测试文本", 0)]
     public void JiebaKeywordExtract_InvalidEnum_ThrowsBeforeEarlyReturn(string? input, int topK)
     {
-        var invalid = (JiebaKeywordAlgorithm)999;
+        const JiebaKeywordAlgorithm invalid = (JiebaKeywordAlgorithm)999;
 
         Assert.ThrowsExactly<ArgumentOutOfRangeException>(() =>
             _openccJieba.JiebaKeywordExtract(input!, topK, invalid));
@@ -590,7 +588,7 @@ public sealed class OpenccJiebaTests
     [DataRow("测试文本", 0)]
     public void JiebaExtractKeywordsWeights_InvalidEnum_ThrowsBeforeEarlyReturn(string? input, int topK)
     {
-        var invalid = (JiebaKeywordAlgorithm)999;
+        const JiebaKeywordAlgorithm invalid = (JiebaKeywordAlgorithm)999;
 
         Assert.ThrowsExactly<ArgumentOutOfRangeException>(() =>
             _openccJieba.JiebaExtractKeywordsWeights(input!, topK, invalid));
@@ -599,7 +597,7 @@ public sealed class OpenccJiebaTests
     [TestMethod]
     public void Convert_WithInvalidEnumValue_ThrowsArgumentOutOfRangeException()
     {
-        var invalid = (OpenccConfig)999;
+        const OpenccConfig invalid = (OpenccConfig)999;
         ArgumentOutOfRangeException? ex = null;
 
         try
@@ -639,7 +637,7 @@ public sealed class OpenccJiebaTests
     [TestMethod]
     public void SegmentJoin_WithInvalidMode_ThrowsArgumentOutOfRangeException()
     {
-        var invalid = (SegmentMode)999;
+        const SegmentMode invalid = (SegmentMode)999;
         ArgumentOutOfRangeException? ex = null;
 
         try
@@ -667,7 +665,7 @@ public sealed class OpenccJiebaTests
         Assert.IsFalse(string.IsNullOrWhiteSpace(abiVersion), "Version string should not be empty.");
 
         var parts = abiVersion.Split('.');
-        Assert.IsTrue(parts.Length == 3 || parts.Length == 4, "Version should have format x.y.z or x.y.z.revision.");
+        Assert.IsTrue(parts.Length is 3 or 4, "Version should have format x.y.z or x.y.z.revision.");
 
         foreach (var part in parts)
         {

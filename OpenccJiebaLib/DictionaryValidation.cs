@@ -12,7 +12,10 @@ namespace OpenccJiebaLib
             if (value == null) throw new ArgumentNullException(parameter);
             if (value.IndexOf('\0') >= 0)
                 throw new ArgumentException("Text must not contain NUL characters.", parameter);
-            try { StrictUtf8.GetByteCount(value); }
+            try
+            {
+                _ = StrictUtf8.GetByteCount(value);
+            }
             catch (EncoderFallbackException error)
             {
                 throw new ArgumentException("Text must contain valid UTF-16.", parameter, error);
@@ -33,14 +36,15 @@ namespace OpenccJiebaLib
         private static bool ContainsWhitespace(string value)
         {
             foreach (var character in value)
-                if (char.IsWhiteSpace(character)) return true;
+                if (char.IsWhiteSpace(character))
+                    return true;
             return false;
         }
 
         internal static UIntPtr Frequency(ulong value)
         {
             if (UIntPtr.Size == 4 && value > uint.MaxValue)
-                throw new ArgumentOutOfRangeException("frequency", value, "Frequency exceeds native size_t.");
+                throw new ArgumentOutOfRangeException(nameof(value), value, "Frequency exceeds native size_t.");
             return new UIntPtr(value);
         }
 

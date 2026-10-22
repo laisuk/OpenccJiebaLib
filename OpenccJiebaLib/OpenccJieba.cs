@@ -75,8 +75,10 @@ namespace OpenccJiebaLib
     /// </remarks>
     public sealed class OpenccJieba : IDisposable
     {
+        // After construction, both fields are accessed only under _syncRoot, including
+        // in private *Locked methods and ConvertCore called by synchronized entry points.
         private IntPtr _openccInstance; // Native instance pointer
-        private volatile bool _disposed; // Tracks whether Dispose has been called
+        private bool _disposed; // Tracks whether Dispose has been called
         private readonly object _syncRoot = new object();
 
         // Pre-encoded config bytes for common configurations (canonical lowercase -> UTF-8 nul-terminated)
@@ -154,7 +156,8 @@ namespace OpenccJiebaLib
         /// <exception cref="InvalidOperationException">Native initialization failed; the message includes native error details.</exception>
         public OpenccJieba(IEnumerable<CustomDictSpec> customDictionarySpecifications)
         {
-            if (customDictionarySpecifications == null) throw new ArgumentNullException(nameof(customDictionarySpecifications));
+            if (customDictionarySpecifications == null)
+                throw new ArgumentNullException(nameof(customDictionarySpecifications));
             using (var buffers = new CustomDictionaryMarshaller(null, customDictionarySpecifications))
                 _openccInstance = buffers.CreateInstance();
         }
@@ -170,7 +173,8 @@ namespace OpenccJiebaLib
             IEnumerable<CustomDictSpec> customDictionarySpecifications)
         {
             if (userDictionaryEntries == null) throw new ArgumentNullException(nameof(userDictionaryEntries));
-            if (customDictionarySpecifications == null) throw new ArgumentNullException(nameof(customDictionarySpecifications));
+            if (customDictionarySpecifications == null)
+                throw new ArgumentNullException(nameof(customDictionarySpecifications));
             using (var buffers = new CustomDictionaryMarshaller(userDictionaryEntries, customDictionarySpecifications))
                 _openccInstance = buffers.CreateInstance();
         }
@@ -205,7 +209,10 @@ namespace OpenccJiebaLib
         internal static InvalidOperationException NativeFailure(string context)
         {
             var error = OpenccJiebaNative.opencc_jieba_last_error();
-            try { return new InvalidOperationException(context + " " + Utf8BytesToString(error)); }
+            try
+            {
+                return new InvalidOperationException(context + " " + Utf8BytesToString(error));
+            }
             finally
             {
                 if (error != IntPtr.Zero) OpenccJiebaNative.opencc_jieba_free_string(error);
@@ -251,6 +258,15 @@ namespace OpenccJiebaLib
             }
 
             _disposed = true;
+        }
+
+        // Only for convenience paths that return or throw without entering a native-backed method.
+        private void ThrowIfDisposed()
+        {
+            lock (_syncRoot)
+            {
+                if (_disposed) throw new ObjectDisposedException(nameof(OpenccJieba));
+            }
         }
 
         /// <summary>
@@ -711,8 +727,6 @@ namespace OpenccJiebaLib
         /// <exception cref="InvalidOperationException">If the native instance is not initialized.</exception>
         public string[] JiebaTagAsString(string input, bool hmm, string separator = "/")
         {
-            if (_disposed) throw new ObjectDisposedException(nameof(OpenccJieba));
-
             var tags = JiebaTag(input, hmm);
 
             if (tags.Length == 0)
@@ -791,10 +805,11 @@ namespace OpenccJiebaLib
         /// </remarks>
         public string[] Segment(string input, SegmentMode mode, bool hmm = true)
         {
-            if (_disposed) throw new ObjectDisposedException(nameof(OpenccJieba));
-
             if (string.IsNullOrEmpty(input))
+            {
+                ThrowIfDisposed();
                 return Array.Empty<string>();
+            }
 
             switch (mode)
             {
@@ -811,6 +826,7 @@ namespace OpenccJiebaLib
                     return JiebaTagAsString(input, hmm);
 
                 default:
+                    ThrowIfDisposed();
                     throw new ArgumentOutOfRangeException(nameof(mode), mode, "Unsupported segment mode.");
             }
         }
@@ -862,10 +878,11 @@ namespace OpenccJiebaLib
             string delimiter = " ",
             string separator = "/")
         {
-            if (_disposed) throw new ObjectDisposedException(nameof(OpenccJieba));
-
             if (string.IsNullOrEmpty(input))
+            {
+                ThrowIfDisposed();
                 return string.Empty;
+            }
 
             delimiter = delimiter ?? string.Empty;
             separator = separator ?? string.Empty;

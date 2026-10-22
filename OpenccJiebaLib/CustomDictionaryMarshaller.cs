@@ -45,6 +45,7 @@ namespace OpenccJiebaLib
                         Tag = Pin(DictionaryValidation.Utf8Z(user.Tag))
                     };
                 }
+
                 UserEntries = Pin(nativeUsers);
 
                 var nativeSpecs = new OpenccJiebaNative.NativeCustomDictSpec[specSnapshot.Count];
@@ -57,6 +58,7 @@ namespace OpenccJiebaLib
                         pairs[j].Source = Pin(DictionaryValidation.Utf8Z(spec.Entries[j].Key));
                         pairs[j].Target = Pin(DictionaryValidation.Utf8Z(spec.Entries[j].Value));
                     }
+
                     nativeSpecs[i] = new OpenccJiebaNative.NativeCustomDictSpec
                     {
                         Slot = (uint)spec.Slot,
@@ -65,6 +67,7 @@ namespace OpenccJiebaLib
                         PairCount = new UIntPtr((uint)pairs.Length)
                     };
                 }
+
                 Specifications = Pin(nativeSpecs);
             }
             catch
@@ -80,9 +83,11 @@ namespace OpenccJiebaLib
             if (values == null) return result;
             foreach (var value in values)
             {
-                if (value == null) throw new ArgumentException("Dictionary collections cannot contain null.", parameter);
+                if (value == null)
+                    throw new ArgumentException("Dictionary collections cannot contain null.", parameter);
                 result.Add(value);
             }
+
             return result;
         }
 

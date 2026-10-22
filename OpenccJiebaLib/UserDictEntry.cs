@@ -5,8 +5,10 @@ namespace OpenccJiebaLib
     {
         /// <summary>Gets the nonempty word, without whitespace or NUL characters.</summary>
         public string Word { get; }
+
         /// <summary>Gets the explicit native size_t frequency, including zero.</summary>
         public ulong Frequency { get; }
+
         /// <summary>Gets the optional POS tag. Null omits the tag; an empty tag remains an empty tag.</summary>
         public string Tag { get; }
 
