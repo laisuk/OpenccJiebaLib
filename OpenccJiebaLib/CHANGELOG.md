@@ -6,6 +6,14 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+[1.4.0] - Unreleased
+
+### Changed
+
+- Update `opencc-jieba-capi` native to v0.8.1.
+
+---
+
 ## [1.3.0] - 2026-08-01
 
 ### Changed
