@@ -83,6 +83,53 @@ namespace OpenccJiebaLib
         [DllImport(DllPath, CallingConvention = CallingConvention.Cdecl)]
         internal static extern IntPtr opencc_jieba_new();
 
+        // Layouts match v0.8.1.1. size_t is pointer-sized on every architecture.
+        [StructLayout(LayoutKind.Sequential)]
+        internal struct NativeUserDictEntry
+        {
+            internal IntPtr Word;
+            internal UIntPtr Frequency;
+            internal IntPtr Tag;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        internal struct NativeCustomPair
+        {
+            internal IntPtr Source;
+            internal IntPtr Target;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        internal struct NativeCustomDictSpec
+        {
+            internal uint Slot;
+            internal uint Mode;
+            internal IntPtr Pairs;
+            internal UIntPtr PairCount;
+        }
+
+        [DllImport(DllPath, CallingConvention = CallingConvention.Cdecl)]
+        internal static extern IntPtr opencc_jieba_new_user_dict(IntPtr entries, UIntPtr entryCount);
+
+        [DllImport(DllPath, CallingConvention = CallingConvention.Cdecl)]
+        internal static extern IntPtr opencc_jieba_new_custom(IntPtr specs, UIntPtr specCount);
+
+        [DllImport(DllPath, CallingConvention = CallingConvention.Cdecl)]
+        internal static extern IntPtr opencc_jieba_new_user_dict_custom(
+            IntPtr entries, UIntPtr entryCount, IntPtr specs, UIntPtr specCount);
+
+        [DllImport(DllPath, CallingConvention = CallingConvention.Cdecl)]
+        [return: MarshalAs(UnmanagedType.I1)]
+        internal static extern bool opencc_jieba_add_word(IntPtr instance, byte[] word,
+            [MarshalAs(UnmanagedType.I1)] bool hasFrequency, UIntPtr frequency, byte[] tag);
+
+        // The returned error string is owned by the caller, unlike version_string.
+        [DllImport(DllPath, CallingConvention = CallingConvention.Cdecl)]
+        internal static extern IntPtr opencc_jieba_last_error();
+
+        [DllImport(DllPath, CallingConvention = CallingConvention.Cdecl)]
+        internal static extern void opencc_jieba_clear_last_error();
+
         /// <summary>
         /// Deletes a previously created native instance and frees associated resources.
         /// </summary>
