@@ -312,8 +312,8 @@ public sealed class OpenccJiebaTests
         Assert.IsNotEmpty(result, "JiebaKeyword returned an empty array.");
 
         // Check for expected segmented results (the actual results may vary based on the segmentation algorithm and dictionary)
-        var expectedSegments = new[] { "清华大学", "北京", "来到", "我" };
-        Assert.AreSequenceEqual(expectedSegments, result, "The segmented words do not match the expected output.");
+        var expectedKeyWords = new[] { "清华大学", "北京", "来到" };
+        Assert.AreSequenceEqual(expectedKeyWords, result, "The segmented words do not match the expected output.");
     }
 
     [TestMethod]

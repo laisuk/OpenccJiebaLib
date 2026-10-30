@@ -6,12 +6,15 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
-[1.4.0] - Unreleased
+## [1.4.0] - Unreleased
 
 ### Changed
 
-- Windows x64 native `opencc-jieba-capi` updated and validated against v0.8.1.1.
-  Other RID binaries remain unchanged and await synchronization; new APIs require native v0.8.1.1 or later.
+- Updated native `opencc-jieba-capi` to v0.9.0, incorporating vendored upstream `jieba-rs` v0.11.0.
+- Improved Jieba segmentation performance and OpenCC conversion integration.
+- Updated TextRank keyword extraction behavior with upstream improvements.
+- Windows x64 native binary updated to v0.9.0. Other RID binaries remain unchanged and await synchronization; new APIs
+  require compatible native binaries.
 - Serialized native instance operations and disposal to protect dynamic Jieba mutation.
 - Native version regression checks accept the optional C API revision component.
 
@@ -20,10 +23,10 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 - Immutable `CustomDictSpec`, `CustomDictMode`, and the 19 native `DictSlot` values.
 - Immutable `UserDictEntry` and constructor overloads for Jieba user entries, OpenCC conversion mappings, or both.
 - Exception-safe pinned UTF-8 constructor marshaling, strict Unicode/NUL validation, and native error propagation.
-- Dynamic `AddWord(word, frequency, tag)` with automatic/zero frequency semantics and disposal protection.
-  Existing words retain their original POS tag according to bundled Jieba behavior.
-- Regression coverage for dictionary ordering, Append/Override, Unicode, ownership, native failures,
-  concurrent mutation/disposal, and Jieba/OpenCC phrase interaction.
+- Dynamic `AddWord(word, frequency, tag)` with automatic/zero frequency semantics and disposal protection. Existing
+  words retain their original POS tag according to bundled Jieba behavior.
+- Regression coverage for dictionary ordering, Append/Override, Unicode, ownership, native failures, concurrent
+  mutation/disposal, and Jieba/OpenCC phrase interaction.
 
 ---
 

@@ -38,10 +38,15 @@
         <FileVersion>1.4.0.0</FileVersion>
         <Version>1.4.0</Version>
 
-        <PackageReleaseNotes>v1.4.0
-            
-            - Windows x64 native opencc-jieba-capi validated against v0.8.1.1; other RID binaries await synchronization.
-            - Added custom OpenCC dictionaries, Jieba user dictionary constructors, and synchronized dynamic AddWord.
+        <PackageReleaseNotes>
+            v1.4.0
+
+            - Updated native opencc-jieba-capi to v0.9.0, based on vendored jieba-rs 0.11.0.
+            - Improved Jieba segmentation performance and OpenCC integration.
+            - Updated TextRank keyword extraction with upstream improvements.
+            - Added custom OpenCC dictionaries and Jieba user dictionary constructors.
+            - Added synchronized dynamic AddWord support.
+            - Windows x64 native binary updated; other RID binaries await synchronization.
         </PackageReleaseNotes>
 
         <PackageIcon>icon.png</PackageIcon>
