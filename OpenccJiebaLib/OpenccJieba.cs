@@ -744,39 +744,92 @@ namespace OpenccJiebaLib
             return result;
         }
 
+
         /// <summary>
-        /// Performs Jieba accurate-mode segmentation and joins the resulting tokens into a single string.
+        /// Performs Jieba accurate-mode word segmentation and joins the resulting
+        /// tokens into a single string using the native cut-and-join implementation.
         /// </summary>
-        /// <param name="input">The input text to segment.</param>
+        /// <param name="input">
+        /// The input text to segment. Null or empty input returns an empty string.
+        /// </param>
         /// <param name="hmm">
-        /// Whether to enable Hidden Markov Model (HMM) support for unknown-word recognition.
+        /// Whether to enable Hidden Markov Model (HMM) support for
+        /// unknown-word recognition.
         /// </param>
         /// <param name="delimiter">
-        /// The delimiter used to join the segmented tokens.
-        /// If <c>null</c>, it is treated as an empty string.
+        /// The delimiter inserted between segmented tokens.
+        /// Null is treated as an empty string.
         /// </param>
         /// <returns>
-        /// A single string containing the segmented tokens joined by <paramref name="delimiter"/>.
-        /// Returns an empty string if <paramref name="input"/> is null or empty.
+        /// A string containing the segmented tokens joined by
+        /// <paramref name="delimiter"/>, or an empty string for null or empty input.
         /// </returns>
         /// <exception cref="ObjectDisposedException">
         /// Thrown if this instance has been disposed.
         /// </exception>
-        /// <exception cref="InvalidOperationException">Thrown if the native instance is not initialized.</exception>
+        /// <exception cref="InvalidOperationException">
+        /// Thrown if the native instance is not initialized or has been disposed.
+        /// </exception>
         /// <remarks>
-        /// This method is deprecated. Use <see cref="SegmentJoin(string, SegmentMode, bool, string, string)"/> instead.
-        /// <para/>
-        /// Equivalent to:
-        /// <code>
-        /// SegmentJoin(input, SegmentMode.Cut, hmm, delimiter)
-        /// </code>
+        /// <para>
+        /// Calls the native <c>opencc_jieba_cut_and_join</c> API directly,
+        /// rather than delegating to <see cref="SegmentJoin(string, SegmentMode, bool, string, string)"/>.
+        /// </para>
+        /// <para>
+        /// This method is retained for compatibility and for comparing the
+        /// native cut-and-join implementation with incremental token joining.
+        /// The returned native string is released using
+        /// <c>opencc_jieba_free_string</c>.
+        /// </para>
         /// </remarks>
-        [Obsolete(
-            "JiebaCutAndJoin is deprecated. Use SegmentJoin(input, SegmentMode.Cut, hmm, delimiter, separator) instead.")]
         public string JiebaCutAndJoin(string input, bool hmm, string delimiter)
         {
-            // Keep exact behavior mapping to new API
-            return SegmentJoin(input, SegmentMode.Cut, hmm, delimiter ?? string.Empty);
+            lock (_syncRoot)
+            {
+                return JiebaCutAndJoinLocked(input, hmm, delimiter);
+            }
+        }
+
+        private string JiebaCutAndJoinLocked(
+            string input,
+            bool hmm,
+            string delimiter)
+        {
+            if (_disposed)
+                throw new ObjectDisposedException(nameof(OpenccJieba));
+
+            if (string.IsNullOrEmpty(input))
+                return string.Empty;
+
+            if (_openccInstance == IntPtr.Zero)
+                throw new InvalidOperationException(
+                    "Native instance is not initialized or has been disposed.");
+
+            byte[] inputBytes = null;
+            byte[] delimiterBytes = null;
+            var result = IntPtr.Zero;
+
+            try
+            {
+                RentUtf8Z(input, out inputBytes);
+                RentUtf8Z(delimiter ?? string.Empty, out delimiterBytes);
+
+                result = OpenccJiebaNative.opencc_jieba_cut_and_join(
+                    _openccInstance,
+                    inputBytes,
+                    hmm,
+                    delimiterBytes);
+
+                return Utf8BytesToString(result);
+            }
+            finally
+            {
+                ReturnRented(inputBytes);
+                ReturnRented(delimiterBytes);
+
+                if (result != IntPtr.Zero)
+                    OpenccJiebaNative.opencc_jieba_free_string(result);
+            }
         }
 
         /// <summary>
