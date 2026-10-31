@@ -18,21 +18,24 @@ extern "C" {
  * Arrays returned by this API are terminated by a sentinel entry where both
  * `word` and `tag` are NULL.
  */
-typedef struct OpenccJiebaTag {
-    char *word;
-    char *tag;
+typedef struct OpenccJiebaTag
+{
+    char* word;
+    char* tag;
 } OpenccJiebaTag;
 
 
-typedef struct OpenccJiebaUserDictEntry {
-    const char *word;
+typedef struct OpenccJiebaUserDictEntry
+{
+    const char* word;
     size_t freq;
-    const char *tag;
+    const char* tag;
 } OpenccJiebaUserDictEntry;
 
 typedef uint32_t opencc_jieba_dict_slot_t;
 
-enum {
+enum
+{
     OPENCC_JIEBA_DICT_SLOT_ST_CHARACTERS = 1,
     OPENCC_JIEBA_DICT_SLOT_ST_PHRASES = 2,
     OPENCC_JIEBA_DICT_SLOT_TS_CHARACTERS = 3,
@@ -56,20 +59,23 @@ enum {
 
 typedef uint32_t opencc_jieba_custom_dict_mode_t;
 
-enum {
+enum
+{
     OPENCC_JIEBA_CUSTOM_DICT_APPEND = 1,
     OPENCC_JIEBA_CUSTOM_DICT_OVERRIDE = 2
 };
 
-typedef struct OpenccJiebaCustomPair {
-    const char *source;
-    const char *target;
+typedef struct OpenccJiebaCustomPair
+{
+    const char* source;
+    const char* target;
 } OpenccJiebaCustomPair;
 
-typedef struct OpenccJiebaCustomDictSpec {
+typedef struct OpenccJiebaCustomDictSpec
+{
     opencc_jieba_dict_slot_t slot;
     opencc_jieba_custom_dict_mode_t mode;
-    const OpenccJiebaCustomPair *pairs;
+    const OpenccJiebaCustomPair* pairs;
     size_t pair_count;
 } OpenccJiebaCustomDictSpec;
 
@@ -100,7 +106,8 @@ typedef uint32_t opencc_jieba_detofu_level_t;
  *
  * @since Available since v0.8.1.
  */
-enum {
+enum
+{
     /** Replace Extension B and all supported later extension mappings. */
     OPENCC_JIEBA_DETOFU_EXT_B = 0,
 
@@ -150,7 +157,7 @@ uint32_t opencc_jieba_abi_number(void);
  *
  * @return Version string pointer.
  */
-const char *opencc_jieba_version_string(void);
+const char* opencc_jieba_version_string(void);
 
 /* =========================================================================
  * Lifecycle
@@ -166,22 +173,22 @@ const char *opencc_jieba_version_string(void);
  *
  * @return Pointer to a newly allocated instance, or NULL on failure.
  */
-void *opencc_jieba_new(void);
+void* opencc_jieba_new(void);
 
-void *opencc_jieba_new_user_dict(
-    const OpenccJiebaUserDictEntry *entries,
+void* opencc_jieba_new_user_dict(
+    const OpenccJiebaUserDictEntry* entries,
     size_t entry_count
 );
 
-void *opencc_jieba_new_custom(
-    const OpenccJiebaCustomDictSpec *specs,
+void* opencc_jieba_new_custom(
+    const OpenccJiebaCustomDictSpec* specs,
     size_t spec_count
 );
 
-void *opencc_jieba_new_user_dict_custom(
-    const OpenccJiebaUserDictEntry *entries,
+void* opencc_jieba_new_user_dict_custom(
+    const OpenccJiebaUserDictEntry* entries,
     size_t entry_count,
-    const OpenccJiebaCustomDictSpec *specs,
+    const OpenccJiebaCustomDictSpec* specs,
     size_t spec_count
 );
 
@@ -192,7 +199,7 @@ void *opencc_jieba_new_user_dict_custom(
  *
  * @param instance Instance previously returned by any `opencc_jieba_new*()` constructor.
  */
-void opencc_jieba_delete(void *instance);
+void opencc_jieba_delete(void* instance);
 
 /**
  * @brief Deprecated alias of `opencc_jieba_delete()`.
@@ -201,7 +208,7 @@ void opencc_jieba_delete(void *instance);
  *
  * @param instance Instance previously returned by any `opencc_jieba_new*()` constructor.
  */
-void opencc_jieba_free(void *instance);
+void opencc_jieba_free(void* instance);
 
 /**
  * @brief Adds or updates one Jieba word on an existing instance (since 0.8.1.1).
@@ -224,11 +231,11 @@ void opencc_jieba_free(void *instance);
  *         details for `opencc_jieba_last_error()` on the calling thread.
  */
 bool opencc_jieba_add_word(
-    void *instance,
-    const char *word,
+    void* instance,
+    const char* word,
     bool has_freq,
     size_t freq,
-    const char *tag
+    const char* tag
 );
 
 /* =========================================================================
@@ -249,10 +256,10 @@ bool opencc_jieba_add_word(
  * @return Newly allocated UTF-8 string. Free with `opencc_jieba_free_string()`.
  *         Returns NULL on error.
  */
-char *opencc_jieba_convert(
-    const void *instance,
-    const char *input,
-    const char *config,
+char* opencc_jieba_convert(
+    const void* instance,
+    const char* input,
+    const char* config,
     bool punctuation
 );
 
@@ -270,7 +277,7 @@ char *opencc_jieba_convert(
  *
  * @return Status code described above.
  */
-int opencc_jieba_zho_check(const void *instance, const char *input);
+int opencc_jieba_zho_check(const void* instance, const char* input);
 
 /* =========================================================================
  * Compatibility normalization
@@ -310,9 +317,9 @@ int opencc_jieba_zho_check(const void *instance, const char *input);
  *
  * @since Available since v0.8.1.
  */
-char *opencc_jieba_normalize_compat(
-    const void *instance,
-    const char *input
+char* opencc_jieba_normalize_compat(
+    const void* instance,
+    const char* input
 );
 
 /**
@@ -355,9 +362,9 @@ char *opencc_jieba_normalize_compat(
  *
  * @since Available since v0.8.1.
  */
-char *opencc_jieba_normalize_compat_extended(
-    const void *instance,
-    const char *input
+char* opencc_jieba_normalize_compat_extended(
+    const void* instance,
+    const char* input
 );
 
 /* =========================================================================
@@ -404,9 +411,9 @@ char *opencc_jieba_normalize_compat_extended(
  *
  * @since Available since v0.8.1.
  */
-char *opencc_jieba_detofu(
-    const void *instance,
-    const char *input,
+char* opencc_jieba_detofu(
+    const void* instance,
+    const char* input,
     opencc_jieba_detofu_level_t level
 );
 
@@ -425,7 +432,7 @@ char *opencc_jieba_detofu(
  *         Free with `opencc_jieba_free_string_array()`.
  *         Returns NULL on error.
  */
-char **opencc_jieba_cut(const void *instance, const char *input, bool hmm);
+char** opencc_jieba_cut(const void* instance, const char* input, bool hmm);
 
 /**
  * @brief Segments text using Jieba full mode.
@@ -437,7 +444,7 @@ char **opencc_jieba_cut(const void *instance, const char *input, bool hmm);
  *         Free with `opencc_jieba_free_string_array()`.
  *         Returns NULL on error.
  */
-char **opencc_jieba_cut_all(const void *instance, const char *input);
+char** opencc_jieba_cut_all(const void* instance, const char* input);
 
 /**
  * @brief Segments text using Jieba search mode.
@@ -450,7 +457,7 @@ char **opencc_jieba_cut_all(const void *instance, const char *input);
  *         Free with `opencc_jieba_free_string_array()`.
  *         Returns NULL on error.
  */
-char **opencc_jieba_cut_for_search(const void *instance, const char *input, bool hmm);
+char** opencc_jieba_cut_for_search(const void* instance, const char* input, bool hmm);
 
 /**
  * @brief Segments text and joins the tokens with a delimiter.
@@ -464,11 +471,11 @@ char **opencc_jieba_cut_for_search(const void *instance, const char *input, bool
  *         Free with `opencc_jieba_free_string()`.
  *         Returns NULL on error.
  */
-char *opencc_jieba_cut_and_join(
-    const void *instance,
-    const char *input,
+char* opencc_jieba_cut_and_join(
+    const void* instance,
+    const char* input,
     bool hmm,
-    const char *delimiter
+    const char* delimiter
 );
 
 /**
@@ -482,7 +489,7 @@ char *opencc_jieba_cut_and_join(
  *         Free with `opencc_jieba_free_tag_array()`.
  *         Returns NULL on error.
  */
-OpenccJiebaTag *opencc_jieba_tag(const void *instance, const char *input, bool hmm);
+OpenccJiebaTag* opencc_jieba_tag(const void* instance, const char* input, bool hmm);
 
 /**
  * @brief Joins a NULL-terminated string array using a delimiter.
@@ -494,7 +501,7 @@ OpenccJiebaTag *opencc_jieba_tag(const void *instance, const char *input, bool h
  *         Free with `opencc_jieba_free_string()`.
  *         Returns NULL on error.
  */
-char *opencc_jieba_join_str(const char *const *strings, const char *delimiter);
+char* opencc_jieba_join_str(const char* const * strings, const char* delimiter);
 
 /* =========================================================================
  * Keyword extraction
@@ -514,11 +521,11 @@ char *opencc_jieba_join_str(const char *const *strings, const char *delimiter);
  *         Free with `opencc_jieba_free_string_array()`.
  *         Returns NULL on error.
  */
-char **opencc_jieba_keywords(
-    const void *instance,
-    const char *input,
+char** opencc_jieba_keywords(
+    const void* instance,
+    const char* input,
     size_t top_k,
-    const char *method
+    const char* method
 );
 
 /**
@@ -541,12 +548,12 @@ char **opencc_jieba_keywords(
  *         Free with `opencc_jieba_free_string_array()`.
  *         Returns NULL on error.
  */
-char **opencc_jieba_keywords_pos(
-    const void *instance,
-    const char *input,
+char** opencc_jieba_keywords_pos(
+    const void* instance,
+    const char* input,
     size_t top_k,
-    const char *method,
-    const char *allowed_pos
+    const char* method,
+    const char* allowed_pos
 );
 
 /**
@@ -572,13 +579,13 @@ char **opencc_jieba_keywords_pos(
  * @return `0` on success, negative value on error.
  */
 int32_t opencc_jieba_keywords_and_weights(
-    const void *instance,
-    const char *input,
+    const void* instance,
+    const char* input,
     size_t top_k,
-    const char *method,
-    size_t *out_len,
-    char ***out_keywords,
-    double **out_weights
+    const char* method,
+    size_t* out_len,
+    char*** out_keywords,
+    double** out_weights
 );
 
 /**
@@ -611,14 +618,14 @@ int32_t opencc_jieba_keywords_and_weights(
  * @return `0` on success, negative value on error.
  */
 int32_t opencc_jieba_keywords_and_weights_pos(
-    const void *instance,
-    const char *input,
+    const void* instance,
+    const char* input,
     size_t top_k,
-    const char *method,
-    const char *allowed_pos,
-    size_t *out_len,
-    char ***out_keywords,
-    double **out_weights
+    const char* method,
+    const char* allowed_pos,
+    size_t* out_len,
+    char*** out_keywords,
+    double** out_weights
 );
 
 /* =========================================================================
@@ -631,7 +638,7 @@ int32_t opencc_jieba_keywords_and_weights_pos(
  * The returned string is newly allocated and must be released with
  * `opencc_jieba_free_string()`.
  */
-char *opencc_jieba_last_error(void);
+char* opencc_jieba_last_error(void);
 
 /** @brief Clears the calling thread's last C API error. */
 void opencc_jieba_clear_last_error(void);
@@ -653,7 +660,7 @@ void opencc_jieba_clear_last_error(void);
  *
  * @param ptr String pointer previously returned by this API.
  */
-void opencc_jieba_free_string(char *ptr);
+void opencc_jieba_free_string(char* ptr);
 
 /**
  * @brief Frees a NULL-terminated string array returned by this API.
@@ -669,7 +676,7 @@ void opencc_jieba_free_string(char *ptr);
  *
  * @param array NULL-terminated array of UTF-8 strings.
  */
-void opencc_jieba_free_string_array(char **array);
+void opencc_jieba_free_string_array(char** array);
 
 /**
  * @brief Frees a sentinel-terminated tag array returned by `opencc_jieba_tag()`.
@@ -678,7 +685,7 @@ void opencc_jieba_free_string_array(char **array);
  *
  * @param array Array terminated by an entry where both `word` and `tag` are NULL.
  */
-void opencc_jieba_free_tag_array(OpenccJiebaTag *array);
+void opencc_jieba_free_tag_array(OpenccJiebaTag* array);
 
 /**
  * @brief Frees arrays returned by weighted keyword extraction functions.
@@ -694,8 +701,8 @@ void opencc_jieba_free_tag_array(OpenccJiebaTag *array);
  * @param len      Number of elements in both arrays.
  */
 void opencc_jieba_free_keywords_and_weights(
-    char **keywords,
-    double *weights,
+    char** keywords,
+    double* weights,
     size_t len
 );
 

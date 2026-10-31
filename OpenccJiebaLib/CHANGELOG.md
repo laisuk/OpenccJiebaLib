@@ -18,6 +18,12 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 - Serialized native instance operations and disposal to protect dynamic Jieba mutation.
 - Native version regression checks accept the optional C API revision component.
 
+### Documentation
+
+- Aligned public XML comments and README contracts for validation, empty input, disposal, and keyword results.
+- Clarified native loading, per-RID release status, and the minimum native version for dictionary APIs.
+- Enabled missing-public-documentation warnings for future API additions.
+
 ### Added
 
 - Immutable `CustomDictSpec`, `CustomDictMode`, and the 19 native `DictSlot` values.

@@ -46,13 +46,13 @@ namespace OpenccJiebaLib
         /// <summary>Taiwan Traditional → Simplified</summary>
         TW2S = 9,
 
-        /// <summary>Taiwan Traditional → Simplified (variant)</summary>
+        /// <summary>Taiwan Traditional → Simplified (with phrase normalization)</summary>
         TW2SP = 10,
 
         /// <summary>Taiwan Traditional → Traditional</summary>
         TW2T = 11,
 
-        /// <summary>Taiwan Traditional → Traditional (variant)</summary>
+        /// <summary>Taiwan Traditional → Traditional (with phrase normalization)</summary>
         TW2TP = 12,
 
         /// <summary>Hong Kong Traditional → Simplified</summary>
@@ -132,7 +132,7 @@ namespace OpenccJiebaLib
         /// </summary>
         /// <param name="name">
         /// Canonical configuration name (e.g. "s2t", "S2TWP", "t2hk").
-        /// Case-insensitive and culture-invariant.
+        /// Case-insensitive and culture-invariant. Whitespace is not trimmed; null and empty names are unsupported.
         /// </param>
         /// <param name="configId">
         /// When this method returns <c>true</c>, contains the parsed
@@ -377,7 +377,7 @@ namespace OpenccJiebaLib
         /// </summary>
         /// <param name="name">
         /// Canonical configuration name (e.g. "s2t", "S2TWP", "t2hk").
-        /// Case-insensitive.
+        /// Case-insensitive; surrounding whitespace is not trimmed.
         /// </param>
         /// <returns>
         /// The corresponding <see cref="OpenccConfig"/> value.

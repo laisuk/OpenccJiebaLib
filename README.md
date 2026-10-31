@@ -1,11 +1,18 @@
 # OpenccJiebaLib
 
 [![NuGet](https://img.shields.io/nuget/v/OpenccJiebaLib.svg)](https://www.nuget.org/packages/OpenccJiebaLib/)
-[![NuGet Downloads](https://img.shields.io/nuget/dt/OpenccJiebaLib.svg?label=downloads\&color=blue)](https://www.nuget.org/packages/OpenccJiebaLib/)
+[![NuGet Downloads](https://img.shields.io/nuget/dt/OpenccJiebaLib.svg?label=downloads&color=blue)](https://www.nuget.org/packages/OpenccJiebaLib/)
 [![License](https://img.shields.io/github/license/laisuk/OpenccJiebaLib.svg)](https://github.com/laisuk/OpenccJiebaLib/blob/master/LICENSE)
 
 A .NET Standard 2.0 library providing a managed C# wrapper for the Rust-based OpenCC and Jieba C API, enabling efficient
 Chinese text conversion (Simplified/Traditional), segmentation, and keyword extraction in .NET applications.
+
+## v1.4.0 release preparation
+
+Version 1.4.0 adds custom OpenCC dictionaries, initial Jieba user entries, and dynamic `AddWord`
+support. Native calls and disposal are serialized per instance. The Windows x64 runtime is updated
+to native v0.9.0 (vendored `jieba-rs` v0.11.0); the other bundled runtimes still await synchronization.
+See the [changelog](OpenccJiebaLib/CHANGELOG.md) for release details.
 
 ## Features
 
@@ -31,8 +38,7 @@ The phrase-aware Hong Kong configurations added in native v0.8.0 are:
 
 ### Prerequisites
 
-* .NET Standard 2.0 or higher (.NET Framework, .NET Core/5+/6+, Mono, Xamarin, etc.).
-* .NET 6.0 or later recommended.
+* A runtime that supports .NET Standard 2.0, and a compatible native library for the process OS and architecture.
 * Native **`opencc_jieba_capi`** library (must be available to the runtime).
 
 ### Installation
@@ -58,10 +64,10 @@ Expected filenames:
 
 ---
 
-#### Option 2 — From NuGet
+#### Option 2 — From NuGet (after v1.4.0 is published)
 
 ```sh
-dotnet add package OpenccJiebaLib
+dotnet add package OpenccJiebaLib --version 1.4.0
 ```
 
 * The NuGet package includes platform-specific native runtimes under:
@@ -70,7 +76,12 @@ dotnet add package OpenccJiebaLib
 runtimes/<RID>/native/
 ```
 
-**Shipped RIDs:** `win-x64`, `linux-arm64`, `linux-x64`, `osx-arm64`
+| Bundled RID | Native runtime status for v1.4.0 |
+| --- | --- |
+| `win-x64` | Updated to v0.9.0; supports custom dictionaries and `AddWord`. |
+| `linux-arm64` | Existing binary; v1.4.0 runtime synchronization and new API validation pending. |
+| `linux-x64` | Existing binary; v1.4.0 runtime synchronization and new API validation pending. |
+| `osx-arm64` | Existing binary; v1.4.0 runtime synchronization and new API validation pending. |
 
 > When publishing with `-r <RID>`, `dotnet publish` copies only the matching native runtime into the publishing output.
 
@@ -78,13 +89,13 @@ runtimes/<RID>/native/
 
 ## Custom native runtimes (drop-in)
 
-OpenccJiebaLib loads the native library from the standard NuGet layout:
+The NuGet package stores native assets in the standard layout:
 
 ```
 runtimes/<RID>/native/<library>
 ```
 
-To add support for another platform, drop in your own native binary:
+For a custom package or project setup, supply a compatible native binary for the target platform:
 
 1. Create the directory:
 
@@ -104,7 +115,11 @@ Example (Intel macOS):
 runtimes/osx-x64/native/libopencc_jieba_capi.dylib
 ```
 
-The loader will pick it up automatically at runtime.
+The wrapper uses `DllImport("opencc_jieba_capi")` and relies on the host runtime's native library
+resolution; it does not recursively search `runtimes/` itself. Include custom assets in NuGet's
+RID layout when packaging, or copy the matching binary to the application output/native search
+path when using a project reference. Merely creating a RID directory does not register a new
+runtime asset with the host.
 
 ---
 
@@ -149,8 +164,8 @@ String-based overloads are still available for configuration names such as `"s2t
 
 ## Custom dictionaries and dynamic Jieba words
 
-These APIs require native `opencc_jieba_capi` **v0.8.1.1 or later**. Windows x64 has been
-validated against v0.8.1.1. The other bundled RID binaries are unchanged and await synchronization;
+These APIs require native `opencc_jieba_capi` **v0.8.1.1 or later**. The bundled Windows x64 runtime is
+updated to v0.9.0 for v1.4.0. The other bundled RID binaries are unchanged and await synchronization;
 their new APIs have not been validated. An older native library missing a required export raises
 `EntryPointNotFoundException` when that API is used.
 
@@ -228,16 +243,28 @@ run concurrently. Disposal is idempotent, and operations after disposal throw
 
 Common exception types:
 
-- `DllNotFoundException`: the native OpenCC-Jieba library cannot be found.
-- `EntryPointNotFoundException`: the native library does not export a required function.
-- `BadImageFormatException`: the native library does not match the current process architecture.
-- `InvalidOperationException`: native initialization or native call failures after the library has loaded.
-- `ArgumentOutOfRangeException`: invalid enum values passed to `OpenccConfig`, `SegmentMode`, or `JiebaKeywordAlgorithm`
-  based APIs.
-- `ArgumentException`: unsupported keyword method names. Invalid string configuration names passed to
-  `Convert(string, string, bool)` intentionally fall back to `s2t`; use `OpenccConfigExtensions.Parse` for strict
-  validation.
-- `ArgumentNullException`: `null` keyword method passed to `JiebaExtractKeywordsWeights(..., string method, ...)`.
+| Exception | Cause |
+| --- | --- |
+| `DllNotFoundException` | Native library or one of its dependencies cannot be loaded. |
+| `EntryPointNotFoundException` | Loaded native binary lacks a required export, including new dictionary APIs on older builds. |
+| `BadImageFormatException` | Native binary is incompatible with the process architecture or format. |
+| `InvalidOperationException` | Native initialization, insertion, or weighted keyword extraction fails, or the native instance is unavailable. |
+| `ObjectDisposedException` | An instance operation is called after disposal. |
+| `ArgumentNullException` | Required dictionary collection, mapping string, or word is null; also null passed to `OpenccConfigExtensions.Parse` or the string keyword extraction overload. |
+| `ArgumentException` | Invalid dictionary text, null collection elements, or unsupported names passed to strict parsing/keyword APIs. |
+| `ArgumentOutOfRangeException` | Undefined enum value or a frequency too large for native `size_t`. |
+
+`Convert(string, string, bool)` falls back to `s2t` for unrecognized names. Use
+`OpenccConfigExtensions.Parse` for strict configuration validation.
+
+Null or empty text returns an empty string/array (or zero for `ZhoCheck`). Keyword extractors
+also return empty results for nonpositive `topK`. Enum keyword algorithms are validated even
+for empty input; `Convert` and segmentation mode values are validated only for nonempty input.
+The string keyword overload validates its method name before delegating to the instance operation.
+
+Dictionary APIs validate Unicode and reject embedded NUL characters. General text-processing
+APIs encode strings as UTF-8 C strings: embedded NUL terminates native input, and malformed
+UTF-16 uses replacement encoding. Supply well-formed text without embedded NUL for full processing.
 
 ---
 
@@ -253,9 +280,8 @@ These constructors create an `OpenccJieba` instance; configuration is selected p
   Adds initial Jieba segmentation entries while retaining built-in conversion mappings.
 - `OpenccJieba(IEnumerable<CustomDictSpec> customDictionarySpecifications)`
   Applies ordered custom OpenCC mappings while retaining built-in Jieba segmentation.
--
-`OpenccJieba(IEnumerable<UserDictEntry> userDictionaryEntries, IEnumerable<CustomDictSpec> customDictionarySpecifications)`
-Supplies both Jieba entries and custom OpenCC mappings.
+- `OpenccJieba(IEnumerable<UserDictEntry> userDictionaryEntries, IEnumerable<CustomDictSpec> customDictionarySpecifications)`
+  Supplies both Jieba entries and custom OpenCC mappings.
 - `void AddWord(string word, ulong? frequency = null, string tag = null)`
   Adds or updates a Jieba word on this instance immediately. Null frequency requests automatic selection;
   zero explicitly disables the word. An existing word retains its original POS tag.
@@ -305,7 +331,7 @@ for validation, ownership, merge semantics, and bundled runtime availability.
 - `OpenccConfigExtensions.ToCanonicalName(this OpenccConfig config)`
 
 `Convert` returns a `string`. Its string overload accepts case-insensitive names and falls back to `s2t`
-for unsupported names. The managed configuration helpers do not invoke native code: `Parse` provides strict
+for null, empty, or unsupported names. Surrounding whitespace is not trimmed. The managed configuration helpers do not invoke native code: `Parse` provides strict
 validation and throws for null or unsupported names; `ToCanonicalName` throws for undefined enum values.
 
 ---
@@ -339,11 +365,11 @@ words and POS tags in `Tag` mode.
 
 - `JiebaTagItem(string word, string tag)` creates a readonly token/tag value, converting null arguments to empty
   strings.
-- `string JiebaTagItem.Word { get; }` gets the token text.
-- `string JiebaTagItem.Tag { get; }` gets the POS tag.
+- `string JiebaTagItem.Word { get; }` gets the token text (null for a default-initialized struct).
+- `string JiebaTagItem.Tag { get; }` gets the POS tag (null for a default-initialized struct).
 - `string JiebaTagItem.ToString()` formats the value as `word/tag`.
 
-`ZhoCheck` returns an `int`: 0 for other text, 1 for Traditional Chinese, or 2 for Simplified Chinese.
+`ZhoCheck` returns an `int`: 0 for other text, 1 for Traditional Chinese, or 2 for Simplified Chinese. Zero also covers mixed or undetermined text.
 The obsolete `JiebaCutAndJoin` returns a `string`; use `SegmentJoin` with `SegmentMode.Cut` instead.
 
 ---
@@ -368,7 +394,7 @@ Weighted results:
 Unweighted extractors return `string[]`. Weighted extractors return
 `(string[] keywords, double[] weights)`, with weights aligned to keywords by index.
 `topK` limits the number of results; nonpositive values return empty results. `allowedPos` is a space-separated
-POS filter (for example, `"n nr ns"`); an empty string disables filtering.
+POS filter (for example, `"n nr ns"`); null or an empty string disables filtering.
 
 `KeywordAlgorithmExtensions` helpers run entirely in managed code. Parsing is case-insensitive, trims surrounding
 whitespace, and accepts `tfidf`, `tf-idf`, `tf_idf`, `textrank`, `text-rank`, and `text_rank`.
@@ -379,7 +405,7 @@ whitespace, and accepts `tfidf`, `tf-idf`, `tf_idf`, `textrank`, `text-rank`, an
 
 ### Utilities
 
-- `static int GetNativeAbiNumber()` returns the native binary interface version for compatibility diagnostics.
+- `static int GetNativeAbiNumber()` returns the native binary interface version for compatibility diagnostics; no automatic ABI or export validation is performed.
 - `static string GetNativeVersionString()` returns the native library version for logging and diagnostics.
 
 ---
@@ -388,7 +414,8 @@ whitespace, and accepts `tfidf`, `tf-idf`, `tf_idf`, `textrank`, `text-rank`, an
 
 ### `DllNotFoundException`
 
-* Ensure the native file exists under `runtimes/<RID>/native/`.
+* Ensure the matching native file and its dependencies are available in the application output or native search path.
+* For project references, explicitly copy the binary; the library project does not supply a transitive native-copy target.
 * If using NuGet, clean and rebuild the project.
 
 ### `BadImageFormatException`

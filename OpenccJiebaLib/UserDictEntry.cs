@@ -13,9 +13,9 @@ namespace OpenccJiebaLib
         public string Tag { get; }
 
         /// <summary>Creates a validated entry. Frequency must fit the current process's native size_t.</summary>
-        /// <param name="word">Valid Unicode word without whitespace or NUL.</param>
+        /// <param name="word">Nonempty valid Unicode word without whitespace or NUL.</param>
         /// <param name="frequency">Explicit Jieba frequency; zero is permitted.</param>
-        /// <param name="tag">Optional valid Unicode POS tag without whitespace or NUL.</param>
+        /// <param name="tag">Optional valid Unicode POS tag without whitespace or NUL; null omits the tag and empty remains empty.</param>
         /// <exception cref="System.ArgumentNullException">Word is null.</exception>
         /// <exception cref="System.ArgumentException">Word or tag violates the text validation rules.</exception>
         /// <exception cref="System.ArgumentOutOfRangeException">Frequency exceeds native size_t.</exception>

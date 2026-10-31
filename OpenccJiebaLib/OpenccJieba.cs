@@ -13,20 +13,20 @@ namespace OpenccJiebaLib
     public readonly struct JiebaTagItem
     {
         /// <summary>
-        /// Gets the segmented token text.
+        /// Gets the segmented token text; null for a default-initialized struct.
         /// </summary>
         public string Word { get; }
 
         /// <summary>
-        /// Gets the part-of-speech tag associated with <see cref="Word"/>.
+        /// Gets the part-of-speech tag associated with <see cref="Word"/>; null for a default-initialized struct.
         /// </summary>
         public string Tag { get; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="JiebaTagItem"/> struct.
         /// </summary>
-        /// <param name="word">The segmented token text.</param>
-        /// <param name="tag">The part-of-speech tag.</param>
+        /// <param name="word">The segmented token text; null becomes an empty string.</param>
+        /// <param name="tag">The part-of-speech tag; null becomes an empty string.</param>
         public JiebaTagItem(string word, string tag)
         {
             Word = word ?? string.Empty;
@@ -137,10 +137,13 @@ namespace OpenccJiebaLib
 
         /// <summary>Creates an instance with Jieba segmentation entries and built-in conversion dictionaries.</summary>
         /// <param name="userDictionaryEntries">Entries copied during construction; empty uses the built-in dictionary.</param>
-        /// <remarks>Requires native v0.8.1.1. The collection is snapshotted and native code copies all data before return.</remarks>
+        /// <remarks>Requires native v0.8.1.1 or later. The collection is snapshotted and native code copies all data before return.</remarks>
         /// <exception cref="ArgumentNullException">The collection is null.</exception>
         /// <exception cref="ArgumentException">The collection contains a null entry.</exception>
         /// <exception cref="InvalidOperationException">Native initialization failed; the message includes native error details.</exception>
+        /// <exception cref="DllNotFoundException">The native library cannot be found.</exception>
+        /// <exception cref="EntryPointNotFoundException">The native library lacks a required export; use a compatible build.</exception>
+        /// <exception cref="BadImageFormatException">The native library is incompatible with the process architecture.</exception>
         public OpenccJieba(IEnumerable<UserDictEntry> userDictionaryEntries)
         {
             if (userDictionaryEntries == null) throw new ArgumentNullException(nameof(userDictionaryEntries));
@@ -150,10 +153,13 @@ namespace OpenccJiebaLib
 
         /// <summary>Creates an instance with custom OpenCC conversion dictionaries and built-in Jieba segmentation.</summary>
         /// <param name="customDictionarySpecifications">Ordered specifications copied during construction; empty uses built-in dictionaries.</param>
-        /// <remarks>Requires native v0.8.1.1. Phrase mappings may require a corresponding Jieba user word to match.</remarks>
+        /// <remarks>Requires native v0.8.1.1 or later. Phrase mappings may require a corresponding Jieba user word to match.</remarks>
         /// <exception cref="ArgumentNullException">The collection is null.</exception>
         /// <exception cref="ArgumentException">The collection contains a null specification.</exception>
         /// <exception cref="InvalidOperationException">Native initialization failed; the message includes native error details.</exception>
+        /// <exception cref="DllNotFoundException">The native library cannot be found.</exception>
+        /// <exception cref="EntryPointNotFoundException">The native library lacks a required export; use a compatible build.</exception>
+        /// <exception cref="BadImageFormatException">The native library is incompatible with the process architecture.</exception>
         public OpenccJieba(IEnumerable<CustomDictSpec> customDictionarySpecifications)
         {
             if (customDictionarySpecifications == null)
@@ -165,10 +171,13 @@ namespace OpenccJiebaLib
         /// <summary>Creates an instance with both Jieba segmentation entries and OpenCC conversion mappings.</summary>
         /// <param name="userDictionaryEntries">Entries copied during construction; cannot be null.</param>
         /// <param name="customDictionarySpecifications">Ordered specifications copied during construction; cannot be null.</param>
-        /// <remarks>Requires native v0.8.1.1. Both collections may be empty. Native code retains its own copies.</remarks>
+        /// <remarks>Requires native v0.8.1.1 or later. Both collections may be empty. Native code retains its own copies.</remarks>
         /// <exception cref="ArgumentNullException">Either collection is null.</exception>
         /// <exception cref="ArgumentException">Either collection contains a null element.</exception>
         /// <exception cref="InvalidOperationException">Native initialization failed; the message includes native error details.</exception>
+        /// <exception cref="DllNotFoundException">The native library cannot be found.</exception>
+        /// <exception cref="EntryPointNotFoundException">The native library lacks a required export; use a compatible build.</exception>
+        /// <exception cref="BadImageFormatException">The native library is incompatible with the process architecture.</exception>
         public OpenccJieba(IEnumerable<UserDictEntry> userDictionaryEntries,
             IEnumerable<CustomDictSpec> customDictionarySpecifications)
         {
@@ -184,12 +193,14 @@ namespace OpenccJiebaLib
         /// <param name="frequency">Null lets Jieba choose the frequency. Zero explicitly disables the word. Must fit native size_t.</param>
         /// <param name="tag">Optional POS tag for a newly inserted word, without whitespace or NUL. Null omits it; empty is passed as an empty tag.</param>
         /// <remarks>
-        /// Requires native v0.8.1.1. Serialized with all other native operations and disposal on this instance.
+        /// Requires native v0.8.1.1 or later. Serialized with all other native operations and disposal on this instance.
         /// The bundled Jieba retains an existing word's original POS tag when updating its frequency.
         /// </remarks>
         /// <exception cref="ObjectDisposedException">The instance has been disposed.</exception>
+        /// <exception cref="ArgumentNullException">Word is null.</exception>
         /// <exception cref="ArgumentException">Word or tag is invalid Unicode or violates the native text rules.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Frequency exceeds native size_t.</exception>
+        /// <exception cref="EntryPointNotFoundException">The native library lacks dynamic word insertion support.</exception>
         /// <exception cref="InvalidOperationException">Native insertion failed; the message includes native error details.</exception>
         public void AddWord(string word, ulong? frequency = null, string tag = null)
         {
@@ -222,6 +233,7 @@ namespace OpenccJiebaLib
         /// <summary>
         /// Releases all resources used by the <see cref="OpenccJieba"/> instance.
         /// </summary>
+        /// <remarks>Repeated calls are safe. Subsequent instance operations throw <see cref="ObjectDisposedException"/>.</remarks>
         public void Dispose()
         {
             Dispose(true);
@@ -282,7 +294,8 @@ namespace OpenccJiebaLib
         /// </summary>
         /// <remarks>
         /// The ABI number represents the native binary interface version and is used
-        /// to ensure compatibility between this managed wrapper and the native library.
+        /// to help diagnose compatibility between this managed wrapper and the native library.
+        /// The wrapper does not automatically validate the ABI number or the available exports.
         /// <para/>
         /// A change in ABI number indicates a breaking change at the native interface level.
         /// </remarks>
@@ -298,8 +311,8 @@ namespace OpenccJiebaLib
         /// Gets the version string of the underlying native Opencc-Jieba library.
         /// </summary>
         /// <remarks>
-        /// The returned value is a semantic version string in the form <c>x.y.z</c>
-        /// (for example, <c>0.8.0</c>), identifying the native library build.
+        /// The returned value identifies the native library build, for example <c>0.9.0</c>
+        /// or a version with a C API revision such as <c>0.8.1.1</c>.
         /// <para/>
         /// This value is intended for diagnostics, logging, and display purposes.
         /// </remarks>
@@ -322,17 +335,13 @@ namespace OpenccJiebaLib
         /// <param name="punctuation">Whether to convert punctuation as well.</param>
         /// <returns>The converted string; returns an empty string if <paramref name="input"/> is null or empty.</returns>
         /// <exception cref="ObjectDisposedException">Thrown if this instance has been disposed.</exception>
-        /// <exception cref="InvalidOperationException">Thrown if the native instance is not initialized or has been disposed.</exception>
+        /// <exception cref="InvalidOperationException">Thrown if the native instance is not initialized.</exception>
         /// <remarks>
         /// This overload accepts a string configuration name for compatibility with existing code and user input.
         /// The name is normalized case-insensitively and mapped to the canonical OpenCC identifier before calling the native API.
         /// <para/>
-        /// Implementation details:
-        /// <list type="bullet">
-        /// <item>Uses <see cref="ArrayPool{T}"/> to rent a UTF-8 buffer and appends a null terminator for the native API.</item>
-        /// <item>Ensures native output memory is freed via <c>opencc_jieba_free_string</c> in a <c>finally</c> block.</item>
-        /// <item>Relies on a precomputed <c>EncodedConfigCache</c> (config → UTF-8 bytes) for fast lookups.</item>
-        /// </list>
+        /// Surrounding whitespace is not trimmed. Null, empty, and unsupported names use <c>"s2t"</c>.
+        /// Use <see cref="OpenccConfigExtensions.Parse(string)"/> for strict validation.
         /// </remarks>
         /// <example>
         /// <code>
@@ -373,7 +382,7 @@ namespace OpenccJiebaLib
         /// <param name="punctuation">Whether to convert punctuation as well.</param>
         /// <returns>The converted string; returns an empty string if <paramref name="input"/> is null or empty.</returns>
         /// <exception cref="ObjectDisposedException">Thrown if this instance has been disposed.</exception>
-        /// <exception cref="InvalidOperationException">Thrown if the native instance is not initialized or has been disposed.</exception>
+        /// <exception cref="InvalidOperationException">Thrown if the native instance is not initialized.</exception>
         /// <exception cref="ArgumentOutOfRangeException">Thrown if <paramref name="configId"/> is not a valid <see cref="OpenccConfig"/> value.</exception>
         /// <remarks>
         /// This overload avoids parsing string configuration names and is the preferred choice when the configuration
@@ -478,7 +487,7 @@ namespace OpenccJiebaLib
         /// </param>
         /// <returns>
         /// An array of segmented tokens.
-        /// Returns <see cref="Array.Empty{String}"/> if the input is empty
+        /// Returns <see cref="Array.Empty{String}"/> if the input is null or empty
         /// or if the native tokenizer returns no result.
         /// </returns>
         /// <remarks>
@@ -538,7 +547,7 @@ namespace OpenccJiebaLib
         /// </param>
         /// <returns>
         /// An array of segmented tokens.
-        /// Returns <see cref="Array.Empty{String}"/> if the input is empty
+        /// Returns <see cref="Array.Empty{String}"/> if the input is null or empty
         /// or if the native tokenizer returns no result.
         /// </returns>
         /// <remarks>
@@ -593,7 +602,7 @@ namespace OpenccJiebaLib
         /// </param>
         /// <returns>
         /// An array of segmented tokens.
-        /// Returns <see cref="Array.Empty{String}"/> if the input is empty
+        /// Returns <see cref="Array.Empty{String}"/> if the input is null or empty
         /// or if the native tokenizer returns no result.
         /// </returns>
         /// <remarks>
@@ -652,7 +661,7 @@ namespace OpenccJiebaLib
         /// </param>
         /// <returns>
         /// An array of tagged tokens.
-        /// Returns <see cref="Array.Empty{T}"/> if the input is empty
+        /// Returns <see cref="Array.Empty{T}"/> if the input is null or empty
         /// or if the native tagger returns no result.
         /// </returns>
         /// <remarks>
@@ -712,11 +721,11 @@ namespace OpenccJiebaLib
         /// Whether to enable HMM-based segmentation.
         /// </param>
         /// <param name="separator">
-        /// Specify tag separator string (default to "/").
+        /// Separator between each word and its POS tag. Defaults to <c>"/"</c>; null is treated as empty.
         /// </param>
         /// <returns>
-        /// An array of strings in the format "word/tag".
-        /// Returns <see cref="Array.Empty{String}"/> if the input is empty
+        /// An array of words and POS tags connected by <paramref name="separator"/>.
+        /// Returns <see cref="Array.Empty{String}"/> if the input is null or empty
         /// or if the native tagger returns no result.
         /// </returns>
         /// <remarks>
@@ -907,12 +916,12 @@ namespace OpenccJiebaLib
         /// If <c>null</c>, it is treated as an empty string.
         /// </param>
         /// <param name="separator">
-        /// The separator used to connect the tag output. Defaults to "/".
+        /// Separator between a word and its POS tag in <see cref="SegmentMode.Tag"/>; ignored in other modes. Defaults to "/".
         /// If <c>null</c>, it is treated as an empty string.
         /// </param>
         /// <returns>
         /// A single string containing the processed tokens joined by <paramref name="delimiter"/>.
-        /// For <see cref="SegmentMode.Tag"/>, tokens are formatted as <c>"word/tag"</c>.
+        /// For <see cref="SegmentMode.Tag"/>, each word and POS tag are connected by <paramref name="separator"/>.
         /// Returns an empty string if <paramref name="input"/> is null or empty, or if no tokens are produced.
         /// </returns>
         /// <exception cref="ObjectDisposedException">
@@ -1023,11 +1032,11 @@ namespace OpenccJiebaLib
         /// <param name="allowedPos">
         /// Optional space-separated list of allowed part-of-speech tags,
         /// for example <c>"n nr ns nt nz v vn"</c>.
-        /// Pass <see cref="string.Empty"/> to disable POS filtering.
+        /// Null or <see cref="string.Empty"/> disables POS filtering.
         /// </param>
         /// <returns>
         /// An array of extracted keywords ordered by relevance (highest first).
-        /// Returns <see cref="Array.Empty{String}"/> if the input is empty
+        /// Returns <see cref="Array.Empty{String}"/> if the input is null or empty
         /// or if the native extractor returns no result.
         /// </returns>
         /// <remarks>
@@ -1064,11 +1073,11 @@ namespace OpenccJiebaLib
         /// <param name="allowedPos">
         /// Optional space-separated list of allowed part-of-speech tags,
         /// for example <c>"n nr ns nt nz v vn"</c>.
-        /// Pass <see cref="string.Empty"/> to disable POS filtering.
+        /// Null or <see cref="string.Empty"/> disables POS filtering.
         /// </param>
         /// <returns>
         /// An array of extracted keywords ordered by importance (highest first).
-        /// Returns <see cref="Array.Empty{String}"/> if the input is empty
+        /// Returns <see cref="Array.Empty{String}"/> if the input is null or empty
         /// or if the native extractor returns no result.
         /// </returns>
         /// <remarks>
@@ -1109,11 +1118,11 @@ namespace OpenccJiebaLib
         /// <param name="allowedPos">
         /// Optional space-separated list of allowed part-of-speech tags,
         /// for example <c>"n nr ns nt nz v vn"</c>.
-        /// Pass <see cref="string.Empty"/> to disable POS filtering.
+        /// Null or <see cref="string.Empty"/> disables POS filtering.
         /// </param>
         /// <returns>
         /// An array of extracted keywords ordered by relevance or importance,
-        /// depending on the selected algorithm.
+        /// depending on the selected algorithm. Empty for null or empty input, nonpositive topK, or no results.
         /// </returns>
         /// <exception cref="ObjectDisposedException">If the instance has been disposed.</exception>
         /// <exception cref="InvalidOperationException">If the native instance is not initialized.</exception>
@@ -1144,11 +1153,11 @@ namespace OpenccJiebaLib
         /// <param name="allowedPos">
         /// Optional space-separated list of allowed part-of-speech tags,
         /// for example <c>"n nr ns nt nz v vn"</c>.
-        /// Pass <see cref="string.Empty"/> to disable POS filtering.
+        /// Null or <see cref="string.Empty"/> disables POS filtering.
         /// </param>
         /// <returns>
         /// An array of extracted keywords ordered by relevance.
-        /// Returns <see cref="Array.Empty{String}"/> if the input is empty
+        /// Returns <see cref="Array.Empty{String}"/> if the input is null or empty
         /// or if the native extractor returns no result.
         /// </returns>
         /// <remarks>
@@ -1238,7 +1247,7 @@ namespace OpenccJiebaLib
         /// <param name="allowedPos">
         /// Optional space-separated list of allowed part-of-speech tags,
         /// for example <c>"n nr ns nt nz v vn"</c>.
-        /// Pass <see cref="string.Empty"/> to disable POS filtering.
+        /// Null or <see cref="string.Empty"/> disables POS filtering.
         /// </param>
         /// <returns>
         /// A tuple containing:
@@ -1246,7 +1255,7 @@ namespace OpenccJiebaLib
         ///   <item><description><c>keywords</c>: extracted keywords ordered by relevance (highest first)</description></item>
         ///   <item><description><c>weights</c>: keyword weights aligned by index with <c>keywords</c></description></item>
         /// </list>
-        /// Returns empty arrays if <paramref name="input"></paramref> is empty or <paramref name="topK"></paramref> is not positive.
+        /// Returns empty arrays if <paramref name="input"/> is null or empty or <paramref name="topK"/> is not positive.
         /// </returns>
         /// <remarks>
         /// <para>
@@ -1261,14 +1270,13 @@ namespace OpenccJiebaLib
         /// Thrown if this instance has been disposed.
         /// </exception>
         /// <exception cref="ArgumentNullException">
-        /// Thrown if <paramref name="method"></paramref> is <c>null</c>.
+        /// Thrown if <paramref name="method"/> is <c>null</c>.
         /// </exception>
         /// <exception cref="ArgumentException">
-        /// Thrown if <paramref name="method"></paramref> is empty or not a supported algorithm name.
+        /// Thrown if <paramref name="method"/> is empty or not a supported algorithm name.
         /// </exception>
         /// <exception cref="InvalidOperationException">
-        /// Thrown if the native instance is not initialized or has been disposed,
-        /// or if the native keyword extraction call fails.
+        /// Thrown if the native instance is not initialized or the native keyword extraction call fails.
         /// </exception>
         public (string[] keywords, double[] weights) JiebaExtractKeywordsWeights(
             string input,
@@ -1303,7 +1311,7 @@ namespace OpenccJiebaLib
         /// <param name="allowedPos">
         /// Optional space-separated list of allowed part-of-speech tags,
         /// for example <c>"n nr ns nt nz v vn"</c>.
-        /// Pass <see cref="string.Empty"/> to disable POS filtering.
+        /// Null or <see cref="string.Empty"/> disables POS filtering.
         /// </param>
         /// <returns>
         /// A tuple containing:
@@ -1311,18 +1319,18 @@ namespace OpenccJiebaLib
         ///   <item><description><c>keywords</c>: extracted keywords ordered by relevance (highest first)</description></item>
         ///   <item><description><c>weights</c>: keyword weights aligned by index with <c>keywords</c></description></item>
         /// </list>
-        /// Returns empty arrays if <paramref name="input"></paramref> is empty or <paramref name="topK"></paramref> is not positive.
+        /// Returns empty arrays if <paramref name="input"/> is null or empty or <paramref name="topK"/> is not positive.
         /// </returns>
         /// <remarks>
         /// This overload provides a strongly typed alternative to the string-based API.
-        /// The specified <paramref name="algorithm"></paramref> is mapped directly to its canonical
+        /// The specified <paramref name="algorithm"/> is mapped directly to its canonical
         /// native representation without parsing.
         /// </remarks>
         /// <exception cref="ObjectDisposedException">
         /// Thrown if the instance has been disposed.
         /// </exception>
         /// <exception cref="InvalidOperationException">
-        /// Thrown if the native instance is not initialized.
+        /// Thrown if the native instance is not initialized or native keyword extraction fails.
         /// </exception>
         /// <exception cref="ArgumentOutOfRangeException">
         /// Thrown if <paramref name="algorithm"/> is not a supported <see cref="JiebaKeywordAlgorithm"/> value.
@@ -1341,14 +1349,15 @@ namespace OpenccJiebaLib
         /// with optional part-of-speech filtering.
         /// </summary>
         /// <param name="input">Input text from which keywords will be extracted.</param>
-        /// <param name="topK">Maximum number of keywords to return.</param>
+        /// <param name="topK">Maximum number of keywords to return; nonpositive values return empty arrays.</param>
         /// <param name="allowedPos">
         /// Optional space-separated list of allowed part-of-speech tags,
         /// for example <c>"n nr ns nt nz v vn"</c>.
-        /// Pass <see cref="string.Empty"/> to disable POS filtering.
+        /// Null or <see cref="string.Empty"/> disables POS filtering.
         /// </param>
         /// <returns>
-        /// A tuple containing extracted keywords and aligned weights.
+        /// A tuple containing keywords in descending relevance order and weights aligned by index.
+        /// Both arrays are empty for null or empty input, nonpositive topK, or no results.
         /// </returns>
         /// <exception cref="ObjectDisposedException">Thrown if this instance has been disposed.</exception>
         /// <exception cref="InvalidOperationException">Thrown if the native instance is not initialized or if native keyword extraction fails.</exception>
@@ -1365,14 +1374,15 @@ namespace OpenccJiebaLib
         /// with optional part-of-speech filtering.
         /// </summary>
         /// <param name="input">Input text from which keywords will be extracted.</param>
-        /// <param name="topK">Maximum number of keywords to return.</param>
+        /// <param name="topK">Maximum number of keywords to return; nonpositive values return empty arrays.</param>
         /// <param name="allowedPos">
         /// Optional space-separated list of allowed part-of-speech tags,
         /// for example <c>"n nr ns nt nz v vn"</c>.
-        /// Pass <see cref="string.Empty"/> to disable POS filtering.
+        /// Null or <see cref="string.Empty"/> disables POS filtering.
         /// </param>
         /// <returns>
-        /// A tuple containing extracted keywords and aligned weights.
+        /// A tuple containing keywords in descending relevance order and weights aligned by index.
+        /// Both arrays are empty for null or empty input, nonpositive topK, or no results.
         /// </returns>
         /// <exception cref="ObjectDisposedException">Thrown if this instance has been disposed.</exception>
         /// <exception cref="InvalidOperationException">Thrown if the native instance is not initialized or if native keyword extraction fails.</exception>
@@ -1402,7 +1412,7 @@ namespace OpenccJiebaLib
         /// <param name="allowedPos">
         /// Optional UTF-8 space-separated part-of-speech filter string,
         /// for example <c>"n nr ns nt nz v vn"</c>.
-        /// Pass <see cref="string.Empty"/> to disable POS filtering.
+        /// Null or <see cref="string.Empty"/> disables POS filtering.
         /// </param>
         /// <returns>
         /// A tuple containing:
@@ -1410,7 +1420,7 @@ namespace OpenccJiebaLib
         ///   <item><description><c>keywords</c>: extracted keywords ordered by relevance (highest first)</description></item>
         ///   <item><description><c>weights</c>: keyword weights aligned by index with <c>keywords</c></description></item>
         /// </list>
-        /// Returns empty arrays if <paramref name="input"/> is empty or <paramref name="topK"/> is not positive.
+        /// Returns empty arrays if <paramref name="input"/> is null or empty or <paramref name="topK"/> is not positive.
         /// </returns>
         /// <remarks>
         /// <para>
@@ -1432,8 +1442,7 @@ namespace OpenccJiebaLib
         /// Thrown if this instance has been disposed.
         /// </exception>
         /// <exception cref="InvalidOperationException">
-        /// Thrown if the native instance is not initialized or has been disposed,
-        /// or if the native keyword extraction call fails.
+        /// Thrown if the native instance is not initialized or the native keyword extraction call fails.
         /// </exception>
         private (string[] keywords, double[] weights) JiebaExtractKeywordsWeightsCore(
             string input,

@@ -42,7 +42,7 @@ namespace OpenccJiebaLib
         /// Attempts to parse a keyword algorithm name into a <see cref="JiebaKeywordAlgorithm"/> value.
         /// </summary>
         /// <param name="value">
-        /// The algorithm name to parse. Case-insensitive.
+        /// The algorithm name to parse. Case-insensitive; surrounding whitespace is trimmed.
         /// Supported values include:
         /// <list type="bullet">
         /// <item><description><c>"tfidf"</c>, <c>"tf-idf"</c>, <c>"tf_idf"</c></description></item>
@@ -86,7 +86,7 @@ namespace OpenccJiebaLib
         /// Parses a keyword algorithm name into a <see cref="JiebaKeywordAlgorithm"/> value.
         /// </summary>
         /// <param name="value">
-        /// The algorithm name to parse. Case-insensitive.
+        /// The algorithm name to parse. Case-insensitive; surrounding whitespace is trimmed.
         /// See <see cref="TryParse"/> for supported formats.
         /// </param>
         /// <returns>

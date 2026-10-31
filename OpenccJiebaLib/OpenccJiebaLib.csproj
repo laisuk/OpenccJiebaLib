@@ -30,8 +30,6 @@
 
         <!-- XML docs -->
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
-        <!-- (Optional) don’t warn about undocumented public members -->
-        <NoWarn>$(NoWarn);1591</NoWarn>
 
         <!-- Versioning -->
         <AssemblyVersion>1.4.0.0</AssemblyVersion>

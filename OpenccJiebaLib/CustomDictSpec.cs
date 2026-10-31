@@ -8,7 +8,7 @@ namespace OpenccJiebaLib
     /// Specifications are applied in constructor order. Duplicate source keys use the last mapping.
     /// Entries are literal source/target strings; they are not parsed as dictionary file rows.
     /// Empty dictionaries are permitted: append leaves the slot unchanged, while override clears it.
-    /// Empty keys or values are passed to native validation, which rejects them during construction.
+    /// Empty keys or values are passed to native validation, which rejects them when an OpenccJieba instance is constructed.
     /// </remarks>
     public sealed class CustomDictSpec
     {
@@ -26,8 +26,8 @@ namespace OpenccJiebaLib
         /// <param name="mode">Append or override behavior for the selected slot.</param>
         /// <param name="entries">Ordered source/target mappings; may be empty but cannot be null.</param>
         /// <exception cref="ArgumentOutOfRangeException">The slot or mode is undefined.</exception>
-        /// <exception cref="ArgumentNullException">The entries collection is null.</exception>
-        /// <exception cref="ArgumentException">An entry contains null, an embedded NUL, or invalid UTF-16.</exception>
+        /// <exception cref="ArgumentNullException">The entries collection, a source key, or a target value is null.</exception>
+        /// <exception cref="ArgumentException">An entry contains an embedded NUL or invalid UTF-16.</exception>
         public CustomDictSpec(DictSlot slot, CustomDictMode mode,
             IEnumerable<KeyValuePair<string, string>> entries)
         {
