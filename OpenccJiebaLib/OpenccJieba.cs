@@ -216,6 +216,119 @@ namespace OpenccJiebaLib
             }
         }
 
+        /// <summary>Normalizes mapped CJK Compatibility Ideographs using the native built-in table.</summary>
+        /// <param name="text">Input text; null or empty returns an empty string.</param>
+        /// <returns>Normalized text, preserving characters without a native compatibility mapping.</returns>
+        /// <remarks>
+        /// Requires native v0.8.1 or later and a live converter instance. This optional preprocessing step
+        /// is direction-independent and does not change conversion dictionaries or segmentation. It
+        /// is not general-purpose NFC, NFD, NFKC, or NFKD normalization. It does not run automatically in Convert.
+        /// Use <see cref="NormalizeCompatExtended"/> to also apply the curated extended compatibility mappings.
+        /// </remarks>
+        /// <exception cref="ObjectDisposedException">The converter has been disposed, including for empty input.</exception>
+        /// <exception cref="ArgumentException">The input contains an embedded NUL character or an unpaired UTF-16 surrogate.</exception>
+        /// <exception cref="EntryPointNotFoundException">The native library lacks the required export; use native v0.8.1 or later.</exception>
+        /// <exception cref="InvalidOperationException">The native operation fails; the message includes native error details.</exception>
+        public string NormalizeCompat(string text)
+        {
+            return TransformText(text, TextTransform.NormalizeCompat);
+        }
+
+        /// <summary>Normalizes CJK Compatibility Ideographs and applies native curated Unicode compatibility mappings.</summary>
+        /// <param name="text">Input text; null or empty returns an empty string.</param>
+        /// <returns>Normalized text, preserving characters without an applicable native mapping.</returns>
+        /// <remarks>
+        /// Requires native v0.8.1 or later and a live converter instance. This optional preprocessing step
+        /// normalizes selected radicals, glyph variants, punctuation forms, and text-extraction artifacts. It
+        /// extends <see cref="NormalizeCompat"/>; it is not general-purpose NFC, NFD, NFKC, or NFKD normalization.
+        /// Recommended order: normalize, Convert, then optionally <see cref="DeTofu"/> for display fallback.
+        /// Existing conversion methods do not enable normalization automatically.
+        /// </remarks>
+        /// <exception cref="ObjectDisposedException">The converter has been disposed, including for empty input.</exception>
+        /// <exception cref="ArgumentException">The input contains an embedded NUL character or an unpaired UTF-16 surrogate.</exception>
+        /// <exception cref="EntryPointNotFoundException">The native library lacks the required export; use native v0.8.1 or later.</exception>
+        /// <exception cref="InvalidOperationException">The native operation fails; the message includes native error details.</exception>
+        public string NormalizeCompatExtended(string text)
+        {
+            return TransformText(text, TextTransform.NormalizeCompatExtended);
+        }
+
+        /// <summary>Applies native built-in fallback mappings for display compatibility at an inclusive extension threshold.</summary>
+        /// <param name="text">Input text; null or empty returns an empty string for a valid level.</param>
+        /// <param name="level">The earliest CJK extension eligible for replacement, including supported later extensions.</param>
+        /// <returns>Display fallback text. Characters without an applicable mapping remain unchanged.</returns>
+        /// <remarks>
+        /// Requires native v0.8.1 or later and a live converter instance. DeTofu is an optional display fallback,
+        /// not Chinese linguistic conversion. Apply it after Convert when the target font lacks rare characters.
+        /// <see cref="DeTofuLevel.ExtB"/> is the broadest threshold. No question marks or replacement glyphs
+        /// are substituted for unmapped characters. Existing conversion behavior remains unchanged.
+        /// </remarks>
+        /// <exception cref="ObjectDisposedException">The converter has been disposed, including for empty input.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">The level is undefined, including for null or empty input.</exception>
+        /// <exception cref="ArgumentException">The input contains an embedded NUL character or an unpaired UTF-16 surrogate.</exception>
+        /// <exception cref="EntryPointNotFoundException">The native library lacks the required export; use native v0.8.1 or later.</exception>
+        /// <exception cref="InvalidOperationException">The native operation fails; the message includes native error details.</exception>
+        public string DeTofu(string text, DeTofuLevel level)
+        {
+            return TransformText(text, TextTransform.DeTofu, level);
+        }
+
+        private enum TextTransform
+        {
+            NormalizeCompat,
+            NormalizeCompatExtended,
+            DeTofu
+        }
+
+        private string TransformText(string text, TextTransform operation, DeTofuLevel level = DeTofuLevel.ExtB)
+        {
+            lock (_syncRoot)
+            {
+                if (_disposed) throw new ObjectDisposedException(nameof(OpenccJieba));
+                if (operation == TextTransform.DeTofu && !Enum.IsDefined(typeof(DeTofuLevel), level))
+                    throw new ArgumentOutOfRangeException(nameof(level), level, "Unknown DeTofu threshold.");
+                if (string.IsNullOrEmpty(text)) return string.Empty;
+                DictionaryValidation.Text(text, nameof(text));
+
+                byte[] inputBuffer = null;
+                var output = IntPtr.Zero;
+                try
+                {
+                    RentUtf8Z(text, out inputBuffer);
+                    switch (operation)
+                    {
+                        case TextTransform.NormalizeCompat:
+                            output = OpenccJiebaNative.opencc_jieba_normalize_compat(_openccInstance, inputBuffer);
+                            break;
+                        case TextTransform.NormalizeCompatExtended:
+                            output = OpenccJiebaNative.opencc_jieba_normalize_compat_extended(_openccInstance,
+                                inputBuffer);
+                            break;
+                        case TextTransform.DeTofu:
+                            output = OpenccJiebaNative.opencc_jieba_detofu(_openccInstance, inputBuffer, (uint)level);
+                            break;
+                        default:
+                            throw new ArgumentOutOfRangeException(nameof(operation), operation, null);
+                    }
+
+                    return output == IntPtr.Zero
+                        ? throw NativeFailure($"{operation} failed.")
+                        : Utf8BytesToString(output);
+                }
+                finally
+                {
+                    try
+                    {
+                        if (output != IntPtr.Zero) OpenccJiebaNative.opencc_jieba_free_string(output);
+                    }
+                    finally
+                    {
+                        ReturnRented(inputBuffer);
+                    }
+                }
+            }
+        }
+
         // last_error returns an owned string and must be read immediately on the failing thread.
         internal static InvalidOperationException NativeFailure(string context)
         {

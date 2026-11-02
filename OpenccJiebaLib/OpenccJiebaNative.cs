@@ -108,32 +108,101 @@ namespace OpenccJiebaLib
             internal UIntPtr PairCount;
         }
 
+        /// <summary>Creates an instance with caller-supplied Jieba entries and built-in OpenCC dictionaries.</summary>
+        /// <param name="entries">Pointer to an array of <see cref="NativeUserDictEntry"/> values; may be zero when the count is zero.</param>
+        /// <param name="entryCount">Number of entries, represented as native <c>size_t</c>.</param>
+        /// <returns>An owned instance, or <see cref="IntPtr.Zero"/> on failure. Release a successful instance with <see cref="opencc_jieba_delete"/>.</returns>
+        /// <remarks>
+        /// Requires native v0.8.1.1 or later. Native code copies all input data during construction; keep arrays and their
+        /// UTF-8 strings valid until the call returns. Empty arrays use the corresponding built-in dictionaries.
+        /// On failure, read <see cref="opencc_jieba_last_error"/> immediately on the calling thread.
+        /// </remarks>
         [DllImport(DllPath, CallingConvention = CallingConvention.Cdecl)]
         internal static extern IntPtr opencc_jieba_new_user_dict(IntPtr entries, UIntPtr entryCount);
 
+        /// <summary>Creates an instance with custom OpenCC dictionaries and built-in Jieba segmentation.</summary>
+        /// <param name="specs">Pointer to an ordered array of <see cref="NativeCustomDictSpec"/> values; may be zero when the count is zero.</param>
+        /// <param name="specCount">Number of specifications, represented as native <c>size_t</c>.</param>
+        /// <returns>An owned instance, or <see cref="IntPtr.Zero"/> on failure. Release a successful instance with <see cref="opencc_jieba_delete"/>.</returns>
+        /// <remarks>
+        /// Requires native v0.8.1.1 or later. Native code copies all input data during construction; keep arrays and their
+        /// UTF-8 strings valid until the call returns. Empty arrays use the corresponding built-in dictionaries.
+        /// On failure, read <see cref="opencc_jieba_last_error"/> immediately on the calling thread.
+        /// </remarks>
         [DllImport(DllPath, CallingConvention = CallingConvention.Cdecl)]
         internal static extern IntPtr opencc_jieba_new_custom(IntPtr specs, UIntPtr specCount);
 
+        /// <summary>Normalizes CJK Compatibility Ideographs.</summary>
+        /// <param name="instance">Pointer to a live native instance.</param>
+        /// <param name="input">Null-terminated UTF-8 input text.</param>
+        /// <returns>An owned, null-terminated UTF-8 string, or <see cref="IntPtr.Zero"/> on failure. Free with <see cref="opencc_jieba_free_string"/>.</returns>
+        /// <remarks>Requires native v0.8.1 or later. Read native errors immediately on the calling thread.</remarks>
+        [DllImport(DllPath, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        internal static extern IntPtr opencc_jieba_normalize_compat(IntPtr instance, byte[] input);
+
+        /// <summary>Applies extended compatibility normalization.</summary>
+        /// <param name="instance">Pointer to a live native instance.</param>
+        /// <param name="input">Null-terminated UTF-8 input text.</param>
+        /// <returns>An owned, null-terminated UTF-8 string, or <see cref="IntPtr.Zero"/> on failure. Free with <see cref="opencc_jieba_free_string"/>.</returns>
+        /// <remarks>Requires native v0.8.1 or later. Read native errors immediately on the calling thread.</remarks>
+        [DllImport(DllPath, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        internal static extern IntPtr opencc_jieba_normalize_compat_extended(IntPtr instance, byte[] input);
+
+        /// <summary>Applies built-in display fallback.</summary>
+        /// <param name="instance">Pointer to a live native instance.</param>
+        /// <param name="input">Null-terminated UTF-8 input text.</param>
+        /// <param name="level">Inclusive extension threshold as a 32-bit unsigned ABI value.</param>
+        /// <returns>An owned, null-terminated UTF-8 string, or <see cref="IntPtr.Zero"/> on failure. Free with <see cref="opencc_jieba_free_string"/>.</returns>
+        /// <remarks>Requires native v0.8.1 or later. Read native errors immediately on the calling thread.</remarks>
+        [DllImport(DllPath, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        internal static extern IntPtr opencc_jieba_detofu(IntPtr instance, byte[] input, uint level);
+
+        /// <summary>Creates an instance with both caller-supplied Jieba entries and custom OpenCC dictionaries.</summary>
+        /// <param name="entries">Pointer to an array of <see cref="NativeUserDictEntry"/> values; may be zero when the count is zero.</param>
+        /// <param name="entryCount">Number of entries, represented as native <c>size_t</c>.</param>
+        /// <param name="specs">Pointer to an ordered array of <see cref="NativeCustomDictSpec"/> values; may be zero when the count is zero.</param>
+        /// <param name="specCount">Number of specifications, represented as native <c>size_t</c>.</param>
+        /// <returns>An owned instance, or <see cref="IntPtr.Zero"/> on failure. Release a successful instance with <see cref="opencc_jieba_delete"/>.</returns>
+        /// <remarks>
+        /// Requires native v0.8.1.1 or later. Native code copies all input data during construction; keep arrays and their
+        /// UTF-8 strings valid until the call returns. Empty arrays use the corresponding built-in dictionaries.
+        /// On failure, read <see cref="opencc_jieba_last_error"/> immediately on the calling thread.
+        /// </remarks>
         [DllImport(DllPath, CallingConvention = CallingConvention.Cdecl)]
         internal static extern IntPtr opencc_jieba_new_user_dict_custom(
             IntPtr entries, UIntPtr entryCount, IntPtr specs, UIntPtr specCount);
 
+        /// <summary>Adds or updates a Jieba word on a live instance.</summary>
+        /// <param name="instance">Pointer to a live, mutable native instance.</param>
+        /// <param name="word">Required null-terminated UTF-8 word; must be nonempty and contain no whitespace.</param>
+        /// <param name="hasFrequency">Whether to use the exact frequency, including zero; false selects automatic frequency.</param>
+        /// <param name="frequency">Native <c>size_t</c> frequency, used only when <paramref name="hasFrequency"/> is true.</param>
+        /// <param name="tag">Optional null-terminated UTF-8 POS tag without whitespace; null omits the tag, while an empty tag remains explicit.</param>
+        /// <returns>True on success, clearing stale thread-local errors; false on failure, recording a thread-local error.</returns>
+        /// <remarks>
+        /// Requires native v0.8.1.1 or later. Inputs remain caller-owned and need only remain valid during the call.
+        /// Synchronize mutation with every other access to this instance, including deletion.
+        /// On failure, read <see cref="opencc_jieba_last_error"/> immediately on the calling thread.
+        /// </remarks>
         [DllImport(DllPath, CallingConvention = CallingConvention.Cdecl)]
         [return: MarshalAs(UnmanagedType.I1)]
         internal static extern bool opencc_jieba_add_word(IntPtr instance, byte[] word,
             [MarshalAs(UnmanagedType.I1)] bool hasFrequency, UIntPtr frequency, byte[] tag);
 
-        // The returned error string is owned by the caller, unlike version_string.
+        /// <summary>Gets the calling thread's last native C API error.</summary>
+        /// <returns>A newly allocated, null-terminated UTF-8 error string. Release it with <see cref="opencc_jieba_free_string"/>.</returns>
+        /// <remarks>Read immediately after a failing call on the same thread, before another native operation can change its error state.</remarks>
         [DllImport(DllPath, CallingConvention = CallingConvention.Cdecl)]
         internal static extern IntPtr opencc_jieba_last_error();
 
+        /// <summary>Clears the calling thread's native C API error state.</summary>
         [DllImport(DllPath, CallingConvention = CallingConvention.Cdecl)]
         internal static extern void opencc_jieba_clear_last_error();
 
         /// <summary>
         /// Deletes a previously created native instance and frees associated resources.
         /// </summary>
-        /// <param name="opencc">Pointer to a native instance created by <see cref="opencc_jieba_new"/>.</param>
+        /// <param name="opencc">Pointer returned by any native instance constructor; zero is safe and has no effect.</param>
         [DllImport(DllPath, CallingConvention = CallingConvention.Cdecl)]
         internal static extern void opencc_jieba_delete(IntPtr opencc);
 
@@ -150,7 +219,7 @@ namespace OpenccJiebaLib
         /// <param name="punctuation">Whether to convert punctuation marks as well.</param>
         /// <returns>
         /// Pointer to a newly allocated UTF-8 null-terminated string containing the converted text.
-        /// Must be freed using <see cref="opencc_jieba_free_string"/>.
+        /// Must be freed using <see cref="opencc_jieba_free_string"/>. Returns <see cref="IntPtr.Zero"/> on error.
         /// </returns>
         [DllImport(DllPath, CallingConvention = CallingConvention.Cdecl)]
         internal static extern IntPtr opencc_jieba_convert(
@@ -170,15 +239,16 @@ namespace OpenccJiebaLib
         /// <item><description><c>1</c> = Traditional Chinese</description></item>
         /// <item><description><c>2</c> = Simplified Chinese</description></item>
         /// <item><description><c>0</c> = Unknown or mixed</description></item>
+        /// <item><description><c>-1</c> = Invalid input or native error</description></item>
         /// </list>
         /// </returns>
         [DllImport(DllPath, CallingConvention = CallingConvention.Cdecl)]
         internal static extern int opencc_jieba_zho_check(IntPtr opencc, byte[] input);
 
         /// <summary>
-        /// Frees a UTF-8 string previously allocated by <see cref="opencc_jieba_convert"/>.
+        /// Frees an owned UTF-8 string returned by conversion, normalization, DeTofu, joining, or error retrieval.
         /// </summary>
-        /// <param name="str">Pointer to the string returned from a native call.</param>
+        /// <param name="str">Pointer to an owned string returned from a native call; zero is safe and has no effect.</param>
         [DllImport(DllPath, CallingConvention = CallingConvention.Cdecl)]
         internal static extern void opencc_jieba_free_string(IntPtr str);
 
@@ -194,7 +264,7 @@ namespace OpenccJiebaLib
         /// <param name="hmm">Whether to enable HMM (Hidden Markov Model) for segmentation.</param>
         /// <returns>
         /// Pointer to a null-terminated array of UTF-8 string pointers.
-        /// Must be freed via <see cref="opencc_jieba_free_string_array"/>.
+        /// Must be freed via <see cref="opencc_jieba_free_string_array"/>. Returns <see cref="IntPtr.Zero"/> on error.
         /// </returns>
         [DllImport(DllPath, CallingConvention = CallingConvention.Cdecl)]
         internal static extern IntPtr opencc_jieba_cut(
@@ -210,7 +280,7 @@ namespace OpenccJiebaLib
         /// <param name="hmm">Whether to enable HMM (Hidden Markov Model) for segmentation.</param>
         /// <returns>
         /// Pointer to a null-terminated array of UTF-8 string pointers.
-        /// Must be freed via <see cref="opencc_jieba_free_string_array"/>.
+        /// Must be freed via <see cref="opencc_jieba_free_string_array"/>. Returns <see cref="IntPtr.Zero"/> on error.
         /// </returns>
         [DllImport(DllPath, CallingConvention = CallingConvention.Cdecl)]
         internal static extern IntPtr opencc_jieba_cut_for_search(
@@ -225,7 +295,7 @@ namespace OpenccJiebaLib
         /// <param name="input">UTF-8 encoded null-terminated input string.</param>
         /// <returns>
         /// Pointer to a null-terminated array of UTF-8 string pointers.
-        /// Must be freed via <see cref="opencc_jieba_free_string_array"/>.
+        /// Must be freed via <see cref="opencc_jieba_free_string_array"/>. Returns <see cref="IntPtr.Zero"/> on error.
         /// </returns>
         [DllImport(DllPath, CallingConvention = CallingConvention.Cdecl)]
         internal static extern IntPtr opencc_jieba_cut_all(
@@ -241,7 +311,7 @@ namespace OpenccJiebaLib
         /// <returns>
         /// Pointer to a null-terminated array of <see cref="OpenccJiebaTagNative"/> entries.
         /// The array is terminated by a sentinel entry where both <c>word</c> and <c>tag</c> are null.
-        /// Must be freed via <see cref="opencc_jieba_free_tag_array"/>.
+        /// Must be freed via <see cref="opencc_jieba_free_tag_array"/>. Returns <see cref="IntPtr.Zero"/> on error.
         /// </returns>
         [DllImport(DllPath, CallingConvention = CallingConvention.Cdecl)]
         internal static extern IntPtr opencc_jieba_tag(IntPtr opencc, byte[] input,
@@ -256,7 +326,7 @@ namespace OpenccJiebaLib
         /// <param name="delimiter">UTF-8 encoded null-terminated delimiter string.</param>
         /// <returns>
         /// Pointer to a UTF-8 null-terminated string with the joined segmentation result.
-        /// Must be freed via <see cref="opencc_jieba_free_string"/>.
+        /// Must be freed via <see cref="opencc_jieba_free_string"/>. Returns <see cref="IntPtr.Zero"/> on error.
         /// </returns>
         [DllImport(DllPath, CallingConvention = CallingConvention.Cdecl)]
         internal static extern IntPtr
@@ -293,7 +363,7 @@ namespace OpenccJiebaLib
         /// <param name="method">UTF-8 encoded null-terminated string ("tfidf" or "textrank").</param>
         /// <returns>
         /// Pointer to a null-terminated array of UTF-8 keyword strings.
-        /// Must be freed via <see cref="opencc_jieba_free_string_array"/>.
+        /// Must be freed via <see cref="opencc_jieba_free_string_array"/>. Returns <see cref="IntPtr.Zero"/> on error.
         /// </returns>
         [DllImport(DllPath, CallingConvention = CallingConvention.Cdecl)]
         internal static extern IntPtr opencc_jieba_keywords(
@@ -317,7 +387,7 @@ namespace OpenccJiebaLib
         /// </param>
         /// <returns>
         /// Pointer to a null-terminated array of UTF-8 keyword strings.
-        /// Must be freed via <see cref="opencc_jieba_free_string_array"/>.
+        /// Must be freed via <see cref="opencc_jieba_free_string_array"/>. Returns <see cref="IntPtr.Zero"/> on error.
         /// </returns>
         [DllImport(DllPath, CallingConvention = CallingConvention.Cdecl)]
         internal static extern IntPtr opencc_jieba_keywords_pos(

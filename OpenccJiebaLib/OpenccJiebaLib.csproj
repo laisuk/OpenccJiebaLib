@@ -32,19 +32,19 @@
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
 
         <!-- Versioning -->
-        <AssemblyVersion>1.4.0.0</AssemblyVersion>
-        <FileVersion>1.4.0.0</FileVersion>
-        <Version>1.4.0</Version>
+        <AssemblyVersion>1.4.1.0</AssemblyVersion>
+        <FileVersion>1.4.1.0</FileVersion>
+        <Version>1.4.1</Version>
 
         <PackageReleaseNotes>
-            v1.4.0
+            v1.4.1
 
-            - Updated native opencc-jieba-capi to v0.9.0, based on vendored jieba-rs 0.11.0.
-            - Improved Jieba segmentation performance and OpenCC integration.
-            - Updated TextRank keyword extraction with upstream improvements.
-            - Added custom OpenCC dictionaries and Jieba user dictionary constructors.
-            - Added synchronized dynamic AddWord support.
-            - Windows x64 native binary updated; other RID binaries await synchronization.
+            - Added NormalizeCompat for CJK Compatibility Ideographs and NormalizeCompatExtended for curated extended compatibility mappings.
+            - Added DeTofu and DeTofuLevel with inclusive Extension B through I display fallback thresholds; unmapped characters are preserved.
+            - Transforms are optional: normalize before conversion and apply DeTofu afterward. Existing conversion behavior is unchanged.
+            - Added Unicode/NUL and level validation, synchronized disposal protection, and regression coverage.
+            - Expanded XML documentation for native APIs, ownership, failure results, and transform contracts.
+            - Transform APIs require native v0.8.1 or later with the corresponding exports; other bundled RID binaries still await synchronization.
         </PackageReleaseNotes>
 
         <PackageIcon>icon.png</PackageIcon>

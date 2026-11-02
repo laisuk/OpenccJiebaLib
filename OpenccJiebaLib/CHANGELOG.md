@@ -6,6 +6,32 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [1.4.1] - Unreleased
+
+### Added
+
+- `NormalizeCompat(text)` to normalize mapped CJK Compatibility Ideographs to unified ideographs.
+- `NormalizeCompatExtended(text)` to additionally apply curated compatibility mappings for selected radicals,
+  glyph variants, punctuation forms, and text-extraction artifacts. Neither normalization API performs general
+  NFC/NFD/NFKC/NFKD normalization.
+- `DeTofu(text, level)` and the ABI-aligned `DeTofuLevel` enum, with inclusive Extension B through I thresholds
+  for built-in display fallback mappings. Unmapped characters remain unchanged.
+- Input validation for embedded NUL characters, unpaired UTF-16 surrogates, and undefined DeTofu levels.
+  Null or empty text returns an empty string for a live instance and a valid level; disposal takes precedence.
+- Serialized transform calls and native resource cleanup, protecting operations against concurrent disposal.
+- Regression coverage for normalization mappings, preserved text, validation, and concurrent disposal.
+
+### Documentation
+
+- Documented native v0.8.1 or later requirements for the three transforms. A compatible native binary must
+  export the corresponding entry points; other bundled RID binaries still await synchronization.
+- Clarified the optional processing order: normalize, convert, then apply DeTofu for display fallback.
+  Existing conversion methods do not apply these transforms automatically.
+- Expanded native binding XML documentation for dictionary constructors, word insertion, error retrieval,
+  memory ownership, and failure results.
+
+---
+
 ## [1.4.0] - 2026-11-01
 
 ### Changed
