@@ -22,6 +22,7 @@ public sealed class SynchronizationTests
     {
         Assert.ThrowsExactly<ObjectDisposedException>(() => converter.NormalizeCompat(input!));
         Assert.ThrowsExactly<ObjectDisposedException>(() => converter.NormalizeCompatExtended(input!));
+        Assert.ThrowsExactly<ObjectDisposedException>(() => converter.NormalizeUnicodeCompat(input!));
         Assert.ThrowsExactly<ObjectDisposedException>(() => converter.DeTofu(input!, DeTofuLevel.ExtB));
         Assert.ThrowsExactly<ObjectDisposedException>(() => converter.JiebaTagAsString(input!, false));
         foreach (var mode in Enum.GetValues<SegmentMode>().Append((SegmentMode)999))
@@ -115,6 +116,7 @@ public sealed class SynchronizationTests
             {
                 converter.NormalizeCompat(input!);
                 converter.NormalizeCompatExtended(input!);
+                converter.NormalizeUnicodeCompat(input!);
                 converter.DeTofu(input!, DeTofuLevel.ExtB);
                 converter.JiebaTagAsString(input!, false);
                 foreach (var mode in Enum.GetValues<SegmentMode>())

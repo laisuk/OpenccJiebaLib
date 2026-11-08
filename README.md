@@ -7,11 +7,12 @@
 A .NET Standard 2.0 library providing a managed C# wrapper for the Rust-based OpenCC and Jieba C API, enabling efficient
 Chinese text conversion (Simplified/Traditional), segmentation, and keyword extraction in .NET applications.
 
-## v1.4.0 release preparation
+## v1.4.1 release preparation
 
-Version 1.4.0 adds custom OpenCC dictionaries, initial Jieba user entries, and dynamic `AddWord`
-support. Native calls and disposal are serialized per instance. The Windows x64 runtime is updated
-to native v0.9.0 (vendored `jieba-rs` v0.11.0); the other bundled runtimes still await synchronization.
+Version 1.4.1 adds optional compatibility normalization and DeTofu display fallback, including
+`NormalizeUnicodeCompat` for the curated Unicode table alone. Packaged native runtimes have been
+updated to v0.9.0.0 (vendored `jieba-rs` v0.11.0). Native calls and disposal are serialized per instance.
+Runtime tests have been run on Windows x64; Linux and macOS execution still require platform validation.
 See the [changelog](OpenccJiebaLib/CHANGELOG.md) for release details.
 
 ## Features
@@ -64,10 +65,10 @@ Expected filenames:
 
 ---
 
-#### Option 2 — From NuGet (after v1.4.0 is published)
+#### Option 2 — From NuGet (after v1.4.1 is published)
 
 ```sh
-dotnet add package OpenccJiebaLib --version 1.4.0
+dotnet add package OpenccJiebaLib --version 1.4.1
 ```
 
 * The NuGet package includes platform-specific native runtimes under:
@@ -76,12 +77,15 @@ dotnet add package OpenccJiebaLib --version 1.4.0
 runtimes/<RID>/native/
 ```
 
-| Bundled RID | Native runtime status for v1.4.0 |
-| --- | --- |
-| `win-x64` | Updated to v0.9.0; supports custom dictionaries and `AddWord`. |
-| `linux-arm64` | Existing binary; v1.4.0 runtime synchronization and new API validation pending. |
-| `linux-x64` | Existing binary; v1.4.0 runtime synchronization and new API validation pending. |
-| `osx-arm64` | Existing binary; v1.4.0 runtime synchronization and new API validation pending. |
+| Bundled RID   | Native runtime status for v1.4.1                             |
+|---------------|--------------------------------------------------------------|
+| `win-x64`     | Updated to v0.9.0.0; regression tests pass on Windows x64.   |
+| `linux-arm64` | Updated binary; execution validation pending on Linux ARM64. |
+| `linux-x64`   | Updated binary; execution validation pending on Linux x64.   |
+| `osx-arm64`   | Updated binary; execution validation pending on macOS ARM64. |
+
+An Intel macOS binary is also present under `runtimes/osx-x64/native/`, but the current project
+file does not include it in the NuGet package.
 
 > When publishing with `-r <RID>`, `dotnet publish` copies only the matching native runtime into the publishing output.
 
@@ -162,11 +166,47 @@ using (var openccJieba = new OpenccJieba())
 String-based overloads are still available for configuration names such as `"s2t"` and keyword methods such as
 `"textrank"`, but the enum-based APIs are recommended for new code.
 
+## Compatibility normalization and display fallback
+
+All transforms are optional instance methods returning a `string`. Conversion methods do not
+apply them automatically. Characters without an applicable native mapping remain unchanged.
+
+| Method                          | Native mappings                                                                               | Minimum native version       |
+|---------------------------------|-----------------------------------------------------------------------------------------------|------------------------------|
+| `NormalizeCompat(text)`         | CJK Compatibility Ideographs only                                                             | v0.8.1                       |
+| `NormalizeUnicodeCompat(text)`  | Curated radicals, glyph variants, punctuation forms, and extraction artifacts only            | v0.9.0.0 with the new export |
+| `NormalizeCompatExtended(text)` | Both compatibility tables                                                                     | v0.8.1                       |
+| `DeTofu(text, level)`           | Display fallback for mapped rare CJK characters at or above the inclusive extension threshold | v0.8.1                       |
+
+These normalization methods do not perform general NFC, NFD, NFKC, or NFKD normalization or
+Simplified/Traditional conversion. `NormalizeUnicodeCompat` preserves CJK Compatibility
+Ideographs unless explicitly mapped by the curated table.
+
+```csharp
+using (var converter = new OpenccJieba())
+{
+    string curated = converter.NormalizeUnicodeCompat("聼⽟神"); // 聽玉神
+    string cjk = converter.NormalizeCompat("聼⽟神");           // 聼⽟神
+    string both = converter.NormalizeCompatExtended("聼⽟神"); // 聽玉神
+    string converted = converter.Convert(both, OpenccConfig.T2S);
+    string display = converter.DeTofu(converted, DeTofuLevel.ExtB);
+}
+```
+
+Normalize before conversion; apply DeTofu afterward when a target font lacks rare characters.
+`DeTofuLevel` offers `ExtB` through `ExtI`; `ExtB` is the broadest threshold. Unmapped characters
+are preserved rather than replaced with question marks.
+
+For a live instance, null or empty text returns an empty string. All four transforms reject
+embedded NUL characters and unpaired UTF-16 surrogates with `ArgumentException`. DeTofu validates
+its level even for empty input. Disposal takes precedence over text and level validation.
+Missing native exports raise `EntryPointNotFoundException`; native failures raise
+`InvalidOperationException` with native error details.
+
 ## Custom dictionaries and dynamic Jieba words
 
-These APIs require native `opencc_jieba_capi` **v0.8.1.1 or later**. The bundled Windows x64 runtime is
-updated to v0.9.0 for v1.4.0. The other bundled RID binaries are unchanged and await synchronization;
-their new APIs have not been validated. An older native library missing a required export raises
+These APIs require native `opencc_jieba_capi` **v0.8.1.1 or later**. See the bundled runtime table
+above for platform validation status. An older native library missing a required export raises
 `EntryPointNotFoundException` when that API is used.
 
 OpenCC dictionaries change conversion mappings. Jieba user entries change segmentation and POS
@@ -243,16 +283,16 @@ run concurrently. Disposal is idempotent, and operations after disposal throw
 
 Common exception types:
 
-| Exception | Cause |
-| --- | --- |
-| `DllNotFoundException` | Native library or one of its dependencies cannot be loaded. |
-| `EntryPointNotFoundException` | Loaded native binary lacks a required export, including new dictionary APIs on older builds. |
-| `BadImageFormatException` | Native binary is incompatible with the process architecture or format. |
-| `InvalidOperationException` | Native initialization, insertion, or weighted keyword extraction fails, or the native instance is unavailable. |
-| `ObjectDisposedException` | An instance operation is called after disposal. |
-| `ArgumentNullException` | Required dictionary collection, mapping string, or word is null; also null passed to `OpenccConfigExtensions.Parse` or the string keyword extraction overload. |
-| `ArgumentException` | Invalid dictionary text, null collection elements, or unsupported names passed to strict parsing/keyword APIs. |
-| `ArgumentOutOfRangeException` | Undefined enum value or a frequency too large for native `size_t`. |
+| Exception                     | Cause                                                                                                                                                          |
+|-------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `DllNotFoundException`        | Native library or one of its dependencies cannot be loaded.                                                                                                    |
+| `EntryPointNotFoundException` | Loaded native binary lacks a required export, including new dictionary APIs on older builds.                                                                   |
+| `BadImageFormatException`     | Native binary is incompatible with the process architecture or format.                                                                                         |
+| `InvalidOperationException`   | Native initialization, insertion, or weighted keyword extraction fails, or the native instance is unavailable.                                                 |
+| `ObjectDisposedException`     | An instance operation is called after disposal.                                                                                                                |
+| `ArgumentNullException`       | Required dictionary collection, mapping string, or word is null; also null passed to `OpenccConfigExtensions.Parse` or the string keyword extraction overload. |
+| `ArgumentException`           | Invalid dictionary text, null collection elements, or unsupported names passed to strict parsing/keyword APIs.                                                 |
+| `ArgumentOutOfRangeException` | Undefined enum value or a frequency too large for native `size_t`.                                                                                             |
 
 `Convert(string, string, bool)` falls back to `s2t` for unrecognized names. Use
 `OpenccConfigExtensions.Parse` for strict configuration validation.
@@ -262,8 +302,9 @@ also return empty results for nonpositive `topK`. Enum keyword algorithms are va
 for empty input; `Convert` and segmentation mode values are validated only for nonempty input.
 The string keyword overload validates its method name before delegating to the instance operation.
 
-Dictionary APIs validate Unicode and reject embedded NUL characters. General text-processing
-APIs encode strings as UTF-8 C strings: embedded NUL terminates native input, and malformed
+Dictionary and compatibility/display transform APIs validate Unicode and reject embedded NUL
+characters. Other text-processing APIs encode strings as UTF-8 C strings: embedded NUL terminates native input, and
+malformed
 UTF-16 uses replacement encoding. Supply well-formed text without embedded NUL for full processing.
 
 ---
@@ -280,8 +321,11 @@ These constructors create an `OpenccJieba` instance; configuration is selected p
   Adds initial Jieba segmentation entries while retaining built-in conversion mappings.
 - `OpenccJieba(IEnumerable<CustomDictSpec> customDictionarySpecifications)`
   Applies ordered custom OpenCC mappings while retaining built-in Jieba segmentation.
-- `OpenccJieba(IEnumerable<UserDictEntry> userDictionaryEntries, IEnumerable<CustomDictSpec> customDictionarySpecifications)`
-  Supplies both Jieba entries and custom OpenCC mappings.
+-
+
+`OpenccJieba(IEnumerable<UserDictEntry> userDictionaryEntries, IEnumerable<CustomDictSpec> customDictionarySpecifications)`
+Supplies both Jieba entries and custom OpenCC mappings.
+
 - `void AddWord(string word, ulong? frequency = null, string tag = null)`
   Adds or updates a Jieba word on this instance immediately. Null frequency requests automatic selection;
   zero explicitly disables the word. An existing word retains its original POS tag.
@@ -331,8 +375,22 @@ for validation, ownership, merge semantics, and bundled runtime availability.
 - `OpenccConfigExtensions.ToCanonicalName(this OpenccConfig config)`
 
 `Convert` returns a `string`. Its string overload accepts case-insensitive names and falls back to `s2t`
-for null, empty, or unsupported names. Surrounding whitespace is not trimmed. The managed configuration helpers do not invoke native code: `Parse` provides strict
+for null, empty, or unsupported names. Surrounding whitespace is not trimmed. The managed configuration helpers do not
+invoke native code: `Parse` provides strict
 validation and throws for null or unsupported names; `ToCanonicalName` throws for undefined enum values.
+
+---
+
+### Compatibility and Display Transforms
+
+- `string NormalizeCompat(string text)`
+- `string NormalizeUnicodeCompat(string text)`
+- `string NormalizeCompatExtended(string text)`
+- `string DeTofu(string text, DeTofuLevel level)`
+- `DeTofuLevel : uint` defines inclusive `ExtB` through `ExtI` thresholds.
+
+See [Compatibility normalization and display fallback](#compatibility-normalization-and-display-fallback)
+for mapping differences, native requirements, and validation rules.
 
 ---
 
@@ -342,7 +400,7 @@ validation and throws for null or unsupported names; `ToCanonicalName` throws fo
 - `SegmentJoin(string input, SegmentMode mode, bool hmm = true, string delimiter = " ", string separator = "/")`
 - `ZhoCheck(string input)`
 
-Legacy (deprecated):
+Native cut-and-join:
 
 - `JiebaCutAndJoin(string input, bool hmm, string delimiter)`
 
@@ -369,8 +427,17 @@ words and POS tags in `Tag` mode.
 - `string JiebaTagItem.Tag { get; }` gets the POS tag (null for a default-initialized struct).
 - `string JiebaTagItem.ToString()` formats the value as `word/tag`.
 
-`ZhoCheck` returns an `int`: 0 for other text, 1 for Traditional Chinese, or 2 for Simplified Chinese. Zero also covers mixed or undetermined text.
-The obsolete `JiebaCutAndJoin` returns a `string`; use `SegmentJoin` with `SegmentMode.Cut` instead.
+`ZhoCheck` returns an `int`: 0 for other text, 1 for Traditional Chinese, or 2 for Simplified Chinese. Zero also covers
+mixed or undetermined text.
+`JiebaCutAndJoin` is supported and is no longer obsolete. It calls the optimized native
+`opencc_jieba_cut_and_join` API directly to perform accurate-mode segmentation and join the tokens
+in native code, returning a single `string` without marshaling an intermediate token array into
+managed code. Use it when you need accurate-mode tokens joined by a delimiter; `hmm` controls
+Hidden Markov Model support. Use `SegmentJoin` when you need its selectable segmentation or tagging modes.
+
+```csharp
+string joined = openccJieba.JiebaCutAndJoin("我来到北京清华大学", hmm: true, delimiter: " ");
+```
 
 ---
 
@@ -405,7 +472,8 @@ whitespace, and accepts `tfidf`, `tf-idf`, `tf_idf`, `textrank`, `text-rank`, an
 
 ### Utilities
 
-- `static int GetNativeAbiNumber()` returns the native binary interface version for compatibility diagnostics; no automatic ABI or export validation is performed.
+- `static int GetNativeAbiNumber()` returns the native binary interface version for compatibility diagnostics; no
+  automatic ABI or export validation is performed.
 - `static string GetNativeVersionString()` returns the native library version for logging and diagnostics.
 
 ---
@@ -415,7 +483,8 @@ whitespace, and accepts `tfidf`, `tf-idf`, `tf_idf`, `textrank`, `text-rank`, an
 ### `DllNotFoundException`
 
 * Ensure the matching native file and its dependencies are available in the application output or native search path.
-* For project references, explicitly copy the binary; the library project does not supply a transitive native-copy target.
+* For project references, explicitly copy the binary; the library project does not supply a transitive native-copy
+  target.
 * If using NuGet, clean and rebuild the project.
 
 ### `BadImageFormatException`

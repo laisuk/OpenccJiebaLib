@@ -148,6 +148,19 @@ namespace OpenccJiebaLib
         [DllImport(DllPath, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
         internal static extern IntPtr opencc_jieba_normalize_compat_extended(IntPtr instance, byte[] input);
 
+        /// <summary>Normalizes only curated Unicode compatibility and variant forms.</summary>
+        /// <param name="instance">Pointer to a live native instance.</param>
+        /// <param name="input">Null-terminated UTF-8 input text.</param>
+        /// <returns>An owned, null-terminated UTF-8 string, or <see cref="IntPtr.Zero"/> on failure. Free with <see cref="opencc_jieba_free_string"/>.</returns>
+        /// <remarks>
+        /// Requires native v0.9.0.0 or later with this export. Applies only the curated Unicode table;
+        /// CJK Compatibility Ideographs are preserved unless explicitly mapped by that table.
+        /// Does not perform general Unicode normalization. Input remains caller-owned; the instance
+        /// must not be mutated or freed during the call. Read native errors immediately on the calling thread.
+        /// </remarks>
+        [DllImport(DllPath, CallingConvention = CallingConvention.Cdecl, ExactSpelling = true)]
+        internal static extern IntPtr opencc_jieba_normalize_unicode_compat(IntPtr instance, byte[] input);
+
         /// <summary>Applies built-in display fallback.</summary>
         /// <param name="instance">Pointer to a live native instance.</param>
         /// <param name="input">Null-terminated UTF-8 input text.</param>

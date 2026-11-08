@@ -6,14 +6,16 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
-## [1.4.1] - Unreleased
+## [1.4.1] - 2026-11-08
 
 ### Added
 
 - `NormalizeCompat(text)` to normalize mapped CJK Compatibility Ideographs to unified ideographs.
 - `NormalizeCompatExtended(text)` to additionally apply curated compatibility mappings for selected radicals,
-  glyph variants, punctuation forms, and text-extraction artifacts. Neither normalization API performs general
-  NFC/NFD/NFKC/NFKD normalization.
+  glyph variants, punctuation forms, and text-extraction artifacts.
+- `NormalizeUnicodeCompat(text)` to apply only the curated Unicode table, preserving CJK Compatibility
+  Ideographs unless explicitly mapped by that table. None of these APIs performs general NFC/NFD/NFKC/NFKD
+  normalization or Simplified/Traditional conversion.
 - `DeTofu(text, level)` and the ABI-aligned `DeTofuLevel` enum, with inclusive Extension B through I thresholds
   for built-in display fallback mappings. Unmapped characters remain unchanged.
 - Input validation for embedded NUL characters, unpaired UTF-16 surrogates, and undefined DeTofu levels.
@@ -21,10 +23,20 @@ This project adheres to [Semantic Versioning](https://semver.org/).
 - Serialized transform calls and native resource cleanup, protecting operations against concurrent disposal.
 - Regression coverage for normalization mappings, preserved text, validation, and concurrent disposal.
 
+### Changed
+
+- Updated native binaries for Windows x64, Linux ARM64/x64, and macOS ARM64/x64 to v0.9.0.0.
+  Windows x64 regression tests pass; execution validation on Linux and macOS remains pending.
+  The macOS x64 binary is present in the repository but is not included by the current package configuration.
+- Extended transform regression coverage to the curated-only mappings, preserved CJK ideographs,
+  Unicode/NUL validation, idempotence, and disposal behavior of `NormalizeUnicodeCompat`.
+
 ### Documentation
 
-- Documented native v0.8.1 or later requirements for the three transforms. A compatible native binary must
-  export the corresponding entry points; other bundled RID binaries still await synchronization.
+- Documented native v0.8.1 or later requirements for the original three transforms and v0.9.0.0 with the
+  corresponding export for `NormalizeUnicodeCompat`.
+- Added a normalization comparison, examples, and transform validation contracts to the README.
+- Corrected the new method's XML exception documentation to require native v0.9.0.0.
 - Clarified the optional processing order: normalize, convert, then apply DeTofu for display fallback.
   Existing conversion methods do not apply these transforms automatically.
 - Expanded native binding XML documentation for dictionary constructors, word insertion, error retrieval,

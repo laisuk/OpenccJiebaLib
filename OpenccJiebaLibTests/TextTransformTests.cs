@@ -17,6 +17,21 @@ public sealed class TextTransformTests
     }
 
     [TestMethod]
+    public void UnicodeCompatibilityNormalizationUsesOnlyTheCuratedTable()
+    {
+        using var converter = new OpenccJieba();
+        const string input = "聼⽟神 汉字 ABC 😀";
+        Assert.AreEqual("聽玉神 汉字 ABC 😀", converter.NormalizeUnicodeCompat(input));
+        Assert.AreEqual("聼⽟神 汉字 ABC 😀", converter.NormalizeCompat(input));
+        Assert.AreEqual("聽玉神 汉字 ABC 😀", converter.NormalizeCompatExtended(input));
+        // Curated normalization preserves fullwidth Latin letters and combining sequences.
+        Assert.AreEqual("Ａe\u0301", converter.NormalizeUnicodeCompat("Ａe\u0301"));
+        Assert.AreEqual("聽玉神 汉字 ABC 😀",
+            converter.NormalizeUnicodeCompat(converter.NormalizeUnicodeCompat(input)));
+        Assert.AreEqual("漢字", converter.Convert("汉字", OpenccConfig.S2T));
+    }
+
+    [TestMethod]
     public void TransformsValidateInputAndKeepTheInstanceUsable()
     {
         var converter = new OpenccJieba();
@@ -62,6 +77,7 @@ public sealed class TextTransformTests
     [
         converter.NormalizeCompat,
         converter.NormalizeCompatExtended,
+        converter.NormalizeUnicodeCompat,
         text => converter.DeTofu(text, DeTofuLevel.ExtB)
     ];
 }

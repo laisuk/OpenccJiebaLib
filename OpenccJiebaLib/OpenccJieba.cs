@@ -253,6 +253,28 @@ namespace OpenccJiebaLib
             return TransformText(text, TextTransform.NormalizeCompatExtended);
         }
 
+        /// <summary>Normalizes selected Unicode compatibility and variant forms using the native curated table.</summary>
+        /// <param name="text">Input text; null or empty returns an empty string for a live instance.</param>
+        /// <returns>Text with curated mappings applied; characters without a mapping are preserved.</returns>
+        /// <remarks>
+        /// Requires native v0.9.0.0 or later with the corresponding export and a live converter instance.
+        /// Maps selected radicals, glyph variants, punctuation forms, and text-extraction artifacts.
+        /// For example, <c>聼⽟神</c> becomes <c>聽玉神</c>. CJK Compatibility Ideographs are
+        /// preserved unless explicitly mapped by the curated table. Use <see cref="NormalizeCompat"/>
+        /// for the CJK table alone, or <see cref="NormalizeCompatExtended"/> for both tables.
+        /// This is not general-purpose NFC, NFD, NFKC, or NFKD normalization or Simplified/Traditional conversion.
+        /// It does not modify the instance's dictionaries or segmentation settings and is not applied
+        /// automatically by conversion methods. Apply it before conversion when needed.
+        /// </remarks>
+        /// <exception cref="ObjectDisposedException">The converter has been disposed, including for null or empty input.</exception>
+        /// <exception cref="ArgumentException">The input contains an embedded NUL character or an unpaired UTF-16 surrogate.</exception>
+        /// <exception cref="EntryPointNotFoundException">The native library lacks the required export; use a compatible native v0.9.0.0 or later build.</exception>
+        /// <exception cref="InvalidOperationException">The native operation fails; the message includes native error details.</exception>
+        public string NormalizeUnicodeCompat(string text)
+        {
+            return TransformText(text, TextTransform.NormalizeUnicodeCompat);
+        }
+
         /// <summary>Applies native built-in fallback mappings for display compatibility at an inclusive extension threshold.</summary>
         /// <param name="text">Input text; null or empty returns an empty string for a valid level.</param>
         /// <param name="level">The earliest CJK extension eligible for replacement, including supported later extensions.</param>
@@ -277,6 +299,7 @@ namespace OpenccJiebaLib
         {
             NormalizeCompat,
             NormalizeCompatExtended,
+            NormalizeUnicodeCompat,
             DeTofu
         }
 
@@ -302,6 +325,10 @@ namespace OpenccJiebaLib
                             break;
                         case TextTransform.NormalizeCompatExtended:
                             output = OpenccJiebaNative.opencc_jieba_normalize_compat_extended(_openccInstance,
+                                inputBuffer);
+                            break;
+                        case TextTransform.NormalizeUnicodeCompat:
+                            output = OpenccJiebaNative.opencc_jieba_normalize_unicode_compat(_openccInstance,
                                 inputBuffer);
                             break;
                         case TextTransform.DeTofu:

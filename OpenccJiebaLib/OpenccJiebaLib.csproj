@@ -40,11 +40,12 @@
             v1.4.1
 
             - Added NormalizeCompat for CJK Compatibility Ideographs and NormalizeCompatExtended for curated extended compatibility mappings.
+            - Added NormalizeUnicodeCompat for curated Unicode compatibility and variant forms alone; requires native v0.9.0.0 with the corresponding export.
             - Added DeTofu and DeTofuLevel with inclusive Extension B through I display fallback thresholds; unmapped characters are preserved.
             - Transforms are optional: normalize before conversion and apply DeTofu afterward. Existing conversion behavior is unchanged.
             - Added Unicode/NUL and level validation, synchronized disposal protection, and regression coverage.
             - Expanded XML documentation for native APIs, ownership, failure results, and transform contracts.
-            - Transform APIs require native v0.8.1 or later with the corresponding exports; other bundled RID binaries still await synchronization.
+            - Original transform APIs require native v0.8.1 or later. Packaged native binaries updated to v0.9.0.0; Windows x64 tested, Linux/macOS execution validation pending.
         </PackageReleaseNotes>
 
         <PackageIcon>icon.png</PackageIcon>
