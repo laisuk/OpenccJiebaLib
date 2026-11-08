@@ -45,7 +45,7 @@ $Reset = "`e[0m"
 # Punctuation flag
 $Punctuation = ($Punct.ToLower() -eq "punct")
 
-Write-Host "Opencc-Clip-Jieba version 1.3.0 Copyright (c) 2026 Laisuk Lai"
+Write-Host "Opencc-Clip-Jieba version 1.4.1 Copyright (c) 2026 Laisuk Lai"
 
 # Handle help configuration
 if ($Config -eq "help") {
